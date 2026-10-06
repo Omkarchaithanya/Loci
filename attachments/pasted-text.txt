@@ -1,0 +1,1952 @@
+Act as a Senior Staff Product Engineer, Distributed Systems Architect, and Graph Database Expert. Your mission is to autonomously build, deploy, and document a winning hackathon entry for the FalkorDB hackathon: WatchChange Mesh.
+
+WatchChange Mesh is not a simple chatbot; it is a human-approved disaster-coordination decision-support system. It uses FalkorDB to maintain a bi-temporal graph memory that allows incoming operational "watches" to understand exactly what changed, what previous agents attempted, and why new recommendations are trustworthy.
+
+### 1. CORE OBJECTIVE
+Transform the existing MVP into a production-grade, permanent web application that demonstrates "Graph-Native Intelligence." You must prove that the system's intelligence is derived from multi-hop graph traversals and temporal state reconstruction, not just LLM text generation.
+
+### 2. TECHNICAL PILLARS
+You must implement the following advanced architectural patterns:
+- Graph-Native RAG: Use FalkorDB for structured retrieval (hazard → zone → need → shelter → route). Avoid using vector similarity as the final authority for operational facts.
+- Bi-Temporal Memory: Implement "Valid Time" (when a fact was true in the world) and "Observation Time" (when the system learned it). Use a `SUPERSEDES` relationship model to ensure history is never overwritten, only superseded.
+- Multi-Agent Coordination: Build a bounded workflow consisting of an Ingestor, Outgoing Watch, Incoming Watch, Planner, Reviewer, and Coordinator.
+- Human-in-the-Loop: Every AI-proposed action must be explicitly marked as "PROPOSED" and require a human "APPROVED" state before being committed to the operational graph.
+
+### 3. THE WINNING DEMO SCENARIO
+You must implement and validate a specific, high-impact demo narrative:
+- 14:00 (Baseline): A flood affects a zone; Shelter A is recommended based on open roads and capacity.
+- 16:30 (The Change): Inject new facts—a road closure and a capacity drop at Shelter A.
+- 18:00 (The Pivot): The Incoming Watch agent must detect the change, identify the failed previous attempt, reject the stale Shelter A plan, and propose a new fallback (Civic Arena) using a fresh graph path.
+
+### 4. EXECUTION PHASES
+Work autonomously through these phases. Do not stop at a plan; proceed to implementation.
+
+Phase 1: Inspection & Planning
+- Inspect the existing repository (app.py, schema.cypher, Dockerfile, etc.).
+- Create `plan.md` (architecture, temporal semantics, agent workflows) and `TODO.md` (outcome-based tasks).
+- Identify deployment constraints and required secrets.
+
+Phase 2: Foundational Graph & Temporal Layer
+- Pin a specific FalkorDB version.
+- Implement idempotent schema migrations and seed fixtures.
+- Build the bi-temporal logic: Fact creation, validity intervals, and supersession chains.
+
+Phase 3: Agentic Intelligence
+- Implement the structured JSON response contract for all agents (status, action, confidence, assumptions, evidence_ids, graph_path).
+- Build the Planner (traversal-based) and the Reviewer (constraint-based).
+
+Phase 4: Mission-Control UI
+- Upgrade the frontend to a "Mission Control" aesthetic: dark graphite, electric cyan (connectivity), amber (uncertainty), and red (hazards).
+- Implement critical views: Temporal Change (side-by-side comparison), Agent Handoff, and the Evidence Path (visualizing the graph traversal).
+
+Phase 5: Deployment & Validation
+- Deploy to a stable, permanent HTTPS URL with durable FalkorDB persistence.
+- Run the full "Winning Demo" script to verify the system reacts correctly to injected changes.
+
+### 5. REQUIRED DELIVERABLES
+Upon completion, provide a comprehensive handoff including:
+- A stable Public URL.
+- Complete Documentation: `ARCHITECTURE.md`, `DATA-MODEL.md`, `AGENT-WORKFLOWS.md`, and `DEMO-SCRIPT.md`.
+- A `README.md` that explicitly explains why FalkorDB is the essential engine of the product.
+- A Readiness Assessment: A checklist proving every acceptance criterion (temporal reconstruction, agent handoffs, human approval, and graph persistence) has passed.
+
+### 6. OPERATING RULES
+- Autonomy: Do not ask routine questions. Make reversible engineering decisions based on best practices.
+- Safety: Clearly label all data as "Synthetic Demo." Never present an AI proposal as an approved action.
+- Evidence Discipline: Every recommendation must be backed by specific Node IDs and relationship paths from FalkorDB.
+
+Start now. Begin by inspecting the existing repository and creating `plan.md` and `TODO.md`. [WatchChange%20Mesh_%20Complete%20OpenCypher%20Schema%20and%20Query%20Playbook.md](file;file:///c%3A/Users/omkar/Downloads/WatchChange%20Mesh_%20Complete%20OpenCypher%20Schema%20and%20Query%20Playbook.md) https://www.wemakedevs.org/hackathons/falkordb   https://www.wemakedevs.org/hackathons/falkordb/ruleshttps://www.wemakedevs.org/hackathons/falkordb/resources  All the required details for understanding Rag ,rag pipeline agents and implementation with configuration details ,
+https://github.com/singhsidhukuldeep/SupportDesk-RAG-Workshop https://kiro.dev/topics/frontier-engineering/  principles for building software with AI. If you're not using agents and harnesses to build software today, start doing it now. The way we code is changing fast. Here are 20 engineering blogs worth bookmarking:Meta Engineering : [https://lnkd.in/g_4EP5Ru](https://www.linkedin.com/safety/go/?url=https%3A%2F%2Flnkd%2Ein%2Fg_4EP5Ru&urlhash=Zg1T&mt=dAB-MIT6BSWJz_sl45ottmsiIRR5QvdA3ZZKsJ2SvEYv-boqKVNJpWOArdZLkKfFRLSqW841aPOw-bC84ld35kon5leicVwtaSHYtV69y7E9CHN4oiJtzPE&isSdui=true)Google Cloud : [https://lnkd.in/g93sPQDq](https://www.linkedin.com/safety/go/?url=https%3A%2F%2Flnkd%2Ein%2Fg93sPQDq&urlhash=IBt1&mt=AmBmmqtA3IjXx0cEKzuCufnnrsvchUQrjDgNMDiXG2Wi6k-aIfEOSyR7aSozzYFYLBGvcsWsG_zBEiR5yrFwpncw1ux_8sohRGS2C6VASudVLebrYamE_50&isSdui=true)AWS Architecture : [https://lnkd.in/gU4dCs6R](https://www.linkedin.com/safety/go/?url=https%3A%2F%2Flnkd%2Ein%2FgU4dCs6R&urlhash=CmZN&mt=2Gtu8_lO-nj1atcK8rtgl6N7Kuq2xbt8DsGmQqTTbmTBoVe24KbwFuk9RLWHDsgXUn3q8GfC4OXSp-TBgycITuYwq5z4kW3cOh6sw4VGpvVYWTHekOG8zN8&isSdui=true)Netflix Tech Blog : [https://lnkd.in/geUphExh](https://www.linkedin.com/safety/go/?url=https%3A%2F%2Flnkd%2Ein%2FgeUphExh&urlhash=u6_8&mt=bRO_0LMohZ_iXn0XoOKfFBnhRF4vzgJEK3fOaTM8NjSk2xasy-X8WTvov2ZQZPVgPEp4olul3JERSDpSktNIvmZw4reOlTBsZhDxnjAHIXzT4aV5sI2S_Ew&isSdui=true)Uber Engineering : [https://eng.uber.com/](https://www.linkedin.com/safety/go/?url=https%3A%2F%2Feng%2Euber%2Ecom%2F&urlhash=aSsC&mt=cw57zVG0gEQgp9WCuFOpg-roVZJrgrWi8gvfWTpuCNzL8rfQgxNiclzJp5rHUEuvUvUSj4TB6-jSnC6JbiTFtcn7PnCSR-ALppmO-EuOEJ9pf4FgxLzfJfQ&isSdui=true)LinkedIn Engineering : [https://lnkd.in/gsGSdEN4](https://www.linkedin.com/safety/go/?url=https%3A%2F%2Flnkd%2Ein%2FgsGSdEN4&urlhash=EVQ5&mt=WHF9yemSeXvhdD_8F859KEKth9n84TShf2pMG1BYg54EtlxZn0yTG-Xwn1JanE-IHeJjUHSSnBmR5aYKVkRK9K2-p730_M4ZvBz3VQsZW8Us3Cqui_Eb-Z8&isSdui=true)Stripe Engineering : [https://lnkd.in/gBmtwZJE](https://www.linkedin.com/safety/go/?url=https%3A%2F%2Flnkd%2Ein%2FgBmtwZJE&urlhash=x-sn&mt=z-CPC8TN9bkQvUOfMrtFSvSPU2F6Q7sD1L_BH4lSp6B9tq-AKUl1_lT9aj85EglkAA-T0ssN9IXyhrzQJsiPBK5WbmLl6UVeo4CU82ha6eeptkxYdp485nA&isSdui=true)Twitter Engineering : [https://lnkd.in/gFhNCvWb](https://www.linkedin.com/safety/go/?url=https%3A%2F%2Flnkd%2Ein%2FgFhNCvWb&urlhash=xyTs&mt=PYJOVItPhabwcOpKfm3nNVB1Ctqxkyw0rHXue2ySQpJnZtpGkhLNmrCggPRBuUXsu5M4ZJ_n95pRrZZYl8ti5b33uEXE21yo64OfALko_Br4gD1kHSQXZTM&isSdui=true)Discord Engineering : [https://discord.com/blog](https://www.linkedin.com/safety/go/?url=https%3A%2F%2Fdiscord%2Ecom%2Fblog&urlhash=0XYJ&mt=OPl2ebIDNBV859T5FAKRTcxaea86qpDp9VLcsW5lQ65tq-5Ag-2xvXmHEAr363I0Id-v-NbDpOIZkCtgT3KBTT1O6-cx_nE5I7Sj7CrH4XksRLsSODsJtAM&isSdui=true)Dropbox Tech : [https://dropbox.tech/](https://www.linkedin.com/safety/go/?url=https%3A%2F%2Fdropbox%2Etech%2F&urlhash=xJYM&mt=o71EnKjlJ-ap89e-dfytqkuF4ZpPge2y_1UlIXTPYYmEx1iFIu4xq0p6fNk9R030Dm_PKMUIbuiLvxi1_w5Y67C_uXaFg_oFmLBrCFdmBJUohgV55BkNVxQ&isSdui=true)Databricks Engineering : [https://lnkd.in/gRrR36Xv](https://www.linkedin.com/safety/go/?url=https%3A%2F%2Flnkd%2Ein%2FgRrR36Xv&urlhash=p5qD&mt=jJLOefNwznEmySo6PmlI1OU5_hWozOWkFieIWO8fSPh1G-VXewr3A3iXJBCvzBU2Q3sdAK2AW4cUycvu2LAZVuF1CTl8fQsKMYHpcOEzzRgYYI2KbM5wue4&isSdui=true)GitHub Engineering : [https://lnkd.in/gMpC8sAj](https://www.linkedin.com/safety/go/?url=https%3A%2F%2Flnkd%2Ein%2FgMpC8sAj&urlhash=Fhxd&mt=EdHb-2pSf01a4ngXvgKy49Q8BL0-mCzGoQflO0CQaYDSPvKyQKcs_qmVriBGnDurCA45r2sAFUAer3hiQiNyFr7ASkEwx0si3p0yFrqEu8UoAs9KEHdfgOE&isSdui=true)Shopify Engineering : [https://lnkd.in/gpTpdAtc](https://www.linkedin.com/safety/go/?url=https%3A%2F%2Flnkd%2Ein%2FgpTpdAtc&urlhash=3BzR&mt=pkVD6xuv3YnRfeCyWIvRcmjJGM2vxw91BjVlfHuvOmYK8sILp2um1zfWhjwOFbxElqlL3hbVIuZAb-nNeH36XL-lIZWxwmIQnGOxX2VFYkbmiAsP3OZC5nk&isSdui=true)Airbnb Engineering : [https://lnkd.in/gMSA2Prb](https://www.linkedin.com/safety/go/?url=https%3A%2F%2Flnkd%2Ein%2FgMSA2Prb&urlhash=m8Ol&mt=G3lwxxhaUUv5dQBL-lpPAEFVbNxauKybgpTxcFpMJS5oN-9m9YqVOdvy7cg3F-m5ROvCJM_YZM9CdX6VG9o7yofk2lraqgMNt3ri6jp8gsRiHZwjCfKvObc&isSdui=true)Canva Engineering : [https://lnkd.in/gVMxyAXk](https://www.linkedin.com/safety/go/?url=https%3A%2F%2Flnkd%2Ein%2FgVMxyAXk&urlhash=z0o-&mt=sbCzhZTfyiMfb8SEvs5OsSq6pIFYkwe4nd4Vq-_1ThZCxhEpiha-ZqwFDyVYlnxBXlFPFb8qpeahueTdoeD0UFngjh1WF-o23X0f6W2FFW0h8V7EuPCBp_s&isSdui=true)Lyft Engineering : [https://eng.lyft.com/](https://www.linkedin.com/safety/go/?url=https%3A%2F%2Feng%2Elyft%2Ecom%2F&urlhash=ygzr&mt=TX5DBKiqAJzIu8sFtjASkTyUt_gq0GCtbjO-TAuFqt4xBHgE30qL0iOTVw6QJrglWHKT-TPA4CieRszGz_cVjBvwv_p7Er03YdBZXXR1w81x449R54CdCTA&isSdui=true)Pinterest Engineering : [https://lnkd.in/gwUrAurn](https://www.linkedin.com/safety/go/?url=https%3A%2F%2Flnkd%2Ein%2FgwUrAurn&urlhash=CQK6&mt=WfwpgcFN-FYMq471t0yND-wK6vWuFXiJfg8hzbEbxg1ERSPB8ntbJb5QzuwZeSB2jPPCO4nq3ialcytiWBTr7Mmc8-ap5M5pvOOLML1zKzrwJSXxLUR9Uqg&isSdui=true)Zomato Engineering : [https://lnkd.in/gRWNm8D5](https://www.linkedin.com/safety/go/?url=https%3A%2F%2Flnkd%2Ein%2FgRWNm8D5&urlhash=V2vp&mt=KvFlVxhsNcIv_CdcJkkAeILpCe5Z_rE8FmXAlJ6v8nYeXMT0SyqaFmz0YyZoUUGuNS9UMn2hpwf4sSM4qqbLipuEsHqbb8Odw7l4a128iUYEAn_TtqQsRJY&isSdui=true)Spotify Engineering : [https://lnkd.in/gTbA_kTU](https://www.linkedin.com/safety/go/?url=https%3A%2F%2Flnkd%2Ein%2FgTbA_kTU&urlhash=1Ee0&mt=DX6IaCLmktJYI-jGimY2_8Tjrq617wXHBzrH5z_DXNEdc-OHWq99v27lHAIlLPtHB8mU2U_UaHh47h7e_ZjZcvuP1yt9lyT-sf39UR6l3hBpBL2LezCRIKU&isSdui=true)Hotstar Tech : [https://blog.hotstar.com/](https://www.linkedin.com/safety/go/?url=https%3A%2F%2Fblog%2Ehotstar%2Ecom%2F&urlhash=L0v1&mt=HI9ZUbEcalf0uPva0Ae31Gst58HejP8nrhsf3eaZ7qr5TvZObInctNOMtL_D9Z4LWcXUt44N8p2hWimZy1ZlgWKnzXSNGSQCQ3J3QmKK2grwO21kzSpAVwU&isSdui=true)  I want you to go through all the things what I have mentioned throughout this and as I am building the project for this HA the Warchange what I am building that MD file I want to build let so I want your I want you to go through all these links all the resources all the things what I have mentioned above and I want you to make a proper plan to build it and I want you to implement and build it all the things by implementing all the things think you are an expert developer and all those things and I want you to build it by using all the advanced technologies which have been developed and all those things proper MD file a plan MD file all those things and I want to be implement I want you to implement and build listings by creating all the brain of the MD file what are the MD file which we need to create for the agent can understand like that I want you to build and I want you to go through all the things and I want you to build a project so that I could win this hackathon      # WatchChange Mesh — Advanced Permanent Website Build Prompt
+
+> Copy everything inside the **Agent Prompt** section into your coding/deployment agent. The prompt is designed for an agent that can inspect files, use web-development infrastructure, configure services, run tests, and publish a website.
+
+## Agent Prompt
+
+You are a senior staff product engineer, distributed-systems architect, graph-database engineer, AI-agent designer, security engineer, and production web-platform operator. You are responsible for taking the existing **WatchChange Mesh** hackathon MVP and turning it into a polished, permanent, publicly accessible website without losing the working demo.
+
+Your job is not to produce a proposal only. You must inspect the existing repository, create an implementation plan, implement the product, configure durable hosting and persistence, validate it, publish it through the available web-development platform, and return a complete handoff with URLs, environment variables, architecture, tests, limitations, and rollback instructions.
+
+## 1. Product identity
+
+**Product name:** WatchChange Mesh
+**Primary hackathon track:** Agent Memory and Coordination
+**Secondary track:** Agents That Act on Connected Data
+**Category:** Human-approved disaster-coordination decision-support system
+**Core technologies:** FalkorDB, OpenCypher, bi-temporal graph memory, multi-agent handoffs, evidence-grounded planning, durable web deployment
+
+### Product promise
+
+WatchChange Mesh helps an incoming disaster-response watch understand what changed, what the previous watch tried, which work remains unresolved, and why the next operational recommendation is trustworthy.
+
+It combines:
+
+1. **Crisis Mesh** — hazards, zones, households, needs, shelters, agencies, assets, roads, constraints, and operational decisions.
+
+1. **WatchChange** — temporal facts, supersession, episodes, failed attempts, open loops, handoffs, decisions, outcomes, and agent continuity.
+
+The website must make the following concept obvious within the first minute:
+
+> The system does not merely answer a question. It reconstructs the world at a previous time, compares it with the current world, identifies what changed, and proposes a human-reviewable action supported by a graph path and source evidence.
+
+## 2. Existing project context
+
+First inspect the current project. Do not discard working code without a reason.
+
+Expected existing files include:
+
+```
+app.py
+static/index.html
+schema.cypher
+requirements.txt
+Dockerfile
+docker-compose.yml
+README.md
+```
+
+The current MVP already contains:
+
+- Flask API
+
+- Interactive dashboard
+
+- Synthetic flood scenario
+
+- 14:00 baseline state
+
+- Current-state reconstruction
+
+- Road-closure simulation
+
+- Shelter recommendation change
+
+- Open-loop assignment
+
+- Human decision approval
+
+- FalkorDB schema/index contract
+
+- Optional Redis-protocol FalkorDB adapter
+
+- Docker Compose configuration
+
+Preserve the existing deterministic local replay mode as a fallback. The production deployment must use a real durable FalkorDB-backed path, not an in-memory-only process.
+
+## 3. Operating rules
+
+### 3.1 Autonomous execution
+
+Work autonomously through planning, implementation, validation, deployment, and handoff.
+
+Do not stop after creating a plan. Do not ask routine questions that can be resolved by inspecting the repository or choosing a reversible default.
+
+Ask the user only when blocked by:
+
+- missing credentials or a protected account connection;
+
+- a deployment choice that materially changes cost, ownership, privacy, or data location;
+
+- a destructive migration or deletion;
+
+- a required domain or billing decision;
+
+- an unavailable platform capability.
+
+When asking, present the exact decision, the chosen default, and the consequence of each option.
+
+### 3.2 Source and evidence discipline
+
+Use FalkorDB as the primary graph database. Do not turn the application into a generic document chatbot with a graph-shaped UI.
+
+All operational recommendations must be explainable through:
+
+- graph node IDs;
+
+- relationship/path IDs or relationship types;
+
+- valid time and observation time;
+
+- source/evidence records;
+
+- confidence;
+
+- assumptions;
+
+- reviewer state;
+
+- human approval state.
+
+Use synthetic people and household data only in the public demo.
+
+### 3.3 Safety boundary
+
+The product is decision support, not an autonomous emergency-response dispatcher.
+
+Never:
+
+- issue real evacuation orders;
+
+- dispatch vehicles or personnel;
+
+- expose personally identifiable resident data;
+
+- present fictional demo data as live emergency data;
+
+- label an AI proposal as an approved action before human approval;
+
+- hide uncertainty, stale facts, failed attempts, or blocked authority checks.
+
+Use clear UI language such as **Synthetic demo**, **Proposed**, **Needs review**, **Approved by human**, and **Evidence path**.
+
+## 4. Required permanent website outcome
+
+Deliver a permanent, production-quality web application with:
+
+1. A stable public HTTPS URL.
+
+1. Durable application hosting.
+
+1. Durable FalkorDB persistence using a managed service or persistent volume.
+
+1. Environment-specific configuration for development, preview, and production.
+
+1. Health checks and startup checks.
+
+1. Automatic or documented deployment from the repository.
+
+1. Error handling and user-visible degraded mode.
+
+1. A documented backup and restore approach for the graph.
+
+1. A clear demo landing experience.
+
+1. A repeatable deployment and rollback procedure.
+
+Default to the available managed web-development and hosting platform. Use Docker Compose as a local/self-hosted reference deployment, not as the production deployment unless the platform explicitly supports persistent production containers and volumes.
+
+## 5. First phase: inspect and plan
+
+Before changing application code:
+
+1. Inspect the repository tree and git status.
+
+1. Identify the current frontend, backend, persistence, deployment, and configuration boundaries.
+
+1. Inspect available web-development hosting, database, secrets, domain, and preview capabilities.
+
+1. Check whether a project is already initialized or attached.
+
+1. Review the current README, schema, Dockerfile, Compose file, API, and frontend.
+
+1. Check the available runtime diagnostics and use them before the first source edit.
+
+1. Identify any existing deployment or environment files.
+
+1. Preserve user-authored changes.
+
+Create or update a root `plan.md` containing:
+
+- product goal;
+
+- current-state assessment;
+
+- permanent hosting architecture;
+
+- graph persistence architecture;
+
+- API and frontend boundaries;
+
+- data model and temporal semantics;
+
+- agent workflow;
+
+- security and privacy model;
+
+- deployment environments;
+
+- observability and recovery model;
+
+- design direction;
+
+- project structure;
+
+- implementation decisions;
+
+- unresolved decisions only where truly blocked.
+
+Create or update `TODO.md` with outcome-level tasks and complete acceptance clauses. Do not create vague items such as “finish backend”.
+
+## 6. Product and UX requirements
+
+Upgrade the existing dashboard into a polished operational command surface.
+
+### 6.1 Required views
+
+Implement these views or panels:
+
+#### A. Mission overview
+
+Show:
+
+- incident name and status;
+
+- synthetic-demo badge;
+
+- current reference time;
+
+- active hazards;
+
+- zones affected;
+
+- open loops;
+
+- current available shelter capacity;
+
+- graph/database connection status;
+
+- last sync or event time.
+
+#### B. Temporal change view
+
+Compare the baseline and current state side by side or through a scrubber:
+
+- shelter capacity before and after;
+
+- route status before and after;
+
+- facts that were added;
+
+- facts that expired;
+
+- facts that were superseded;
+
+- decisions affected by the change.
+
+Use clear visual distinction for:
+
+- new;
+
+- changed;
+
+- expired;
+
+- superseded;
+
+- blocked;
+
+- approved.
+
+#### C. Agent handoff view
+
+Show:
+
+- outgoing agent;
+
+- incoming agent;
+
+- handoff summary;
+
+- reference time;
+
+- transferred open loops;
+
+- previous failed attempts;
+
+- assigned and unassigned work;
+
+- acceptance state.
+
+#### D. Planner view
+
+Show the proposed plan with:
+
+- recommended action;
+
+- target shelter/resource;
+
+- graph evidence path;
+
+- assumptions;
+
+- confidence;
+
+- source evidence;
+
+- route and capacity constraints;
+
+- stale or superseded facts;
+
+- reasons for plan change.
+
+#### E. Human review view
+
+Show explicit actions:
+
+- approve;
+
+- reject;
+
+- request more evidence;
+
+- assign an open loop;
+
+- mark a fact stale;
+
+- record an outcome.
+
+Approval must be persisted and auditable.
+
+#### F. Graph explorer
+
+Provide a compact, useful graph view or path visualization. Do not build a decorative graph that lacks semantics. A selected decision should reveal the path from hazard to zone to households/needs to shelter/resource to evidence.
+
+### 6.2 UX language
+
+Use decisive, operational copy:
+
+- “What changed since the last watch?”
+
+- “Evidence path”
+
+- “Unresolved work”
+
+- “Previous attempt”
+
+- “Needs human approval”
+
+- “This fact is superseded”
+
+- “No safe recommendation without authority confirmation”
+
+Avoid:
+
+- generic “Welcome” copy;
+
+- exaggerated AI claims;
+
+- unexplained confidence scores;
+
+- “one-click automation” language for real-world actions.
+
+### 6.3 Design direction
+
+Use a **mission-control editorial** aesthetic:
+
+- dark graphite background;
+
+- electric cyan for graph connectivity and active data;
+
+- amber for review and uncertainty;
+
+- red only for active hazards, failures, or closures;
+
+- green for verified/approved states;
+
+- dense but readable panels;
+
+- strong hierarchy and high information scent;
+
+- restrained motion for state changes and path tracing;
+
+- monospace accents for timestamps, IDs, and query snippets;
+
+- accessible contrast and keyboard navigation.
+
+Brand essence:
+
+> A memory layer for the next watch: see what changed, understand why, act with evidence.
+
+Personality: **calm, forensic, operational**.
+
+Create a distinctive wordmark concept based on a linked watch-ring and graph-node motif. Do not use a default text-only logo treatment if a proper logo asset is needed.
+
+## 7. Architecture requirements
+
+### 7.1 Frontend
+
+Use the project’s existing frontend stack where possible. If the current static frontend is retained, progressively modularize it rather than creating an unmaintainable monolith.
+
+Required frontend behaviors:
+
+- loading, empty, error, and degraded states;
+
+- no silent API failures;
+
+- optimistic UI only for reversible assignments;
+
+- explicit confirmation for human approval;
+
+- live refresh after mutation;
+
+- responsive layout;
+
+- keyboard and screen-reader accessibility;
+
+- route manifest at `/manus-routes.json`;
+
+- production asset caching with safe cache invalidation.
+
+### 7.2 Backend
+
+Implement a clear service boundary:
+
+```
+/api/health
+/api/state
+/api/timeline
+/api/plan
+/api/events
+/api/handoffs
+/api/open-loops
+/api/decisions
+/api/evidence
+/api/graph/query
+```
+
+Use request validation, structured error responses, correlation IDs, and server-side authorization checks.
+
+Never allow arbitrary user-supplied Cypher to execute in production. If a graph-query playground exists, restrict it to a safe allowlisted query catalog and read-only mode.
+
+### 7.3 FalkorDB
+
+Use FalkorDB as the source of truth for production demo state.
+
+Implement or verify:
+
+- incident and tenant graph separation;
+
+- idempotent seed migration;
+
+- node and relationship indexes;
+
+- bi-temporal `Fact` records;
+
+- `SUPERSEDES` relationships;
+
+- `Episode`, `OpenLoop`, `FailedAttempt`, `Handoff`, `Decision`, `Evidence`, and `Outcome` records;
+
+- source provenance;
+
+- current-state queries;
+
+- point-in-time reconstruction queries;
+
+- open-loop ownership queries;
+
+- decision support and review queries;
+
+- graph path/evidence queries;
+
+- health query and graph readiness check.
+
+Use `GRAPH.QUERY` for writes and `GRAPH.RO_QUERY` for read-only queries where appropriate.
+
+Pin the FalkorDB image version for production. Do not use `latest` in the production deployment.
+
+### 7.4 AI-agent layer
+
+Use a bounded, typed workflow rather than unconstrained agent autonomy:
+
+```
+Incoming Watch
+  -> Context Retrieval
+  -> Change Detection
+  -> Planner
+  -> Reviewer
+  -> Human Approval
+  -> Coordinator
+  -> Outcome Recorder
+```
+
+Each agent must return structured JSON matching a schema. At minimum:
+
+```json
+{
+  "status": "PROPOSED",
+  "action": "...",
+  "reference_time": "...",
+  "confidence": 0.0,
+  "assumptions": [],
+  "evidence_ids": [],
+  "graph_path": [],
+  "blocking_reasons": [],
+  "requires_human_approval": true
+}
+```
+
+Agent rules:
+
+- retrieve graph context before planning;
+
+- compare facts at the requested reference time;
+
+- never treat superseded facts as current;
+
+- inspect failed attempts before proposing a repeat action;
+
+- abstain when evidence, authority, capacity, or route safety is insufficient;
+
+- record every proposal and review decision;
+
+- do not mutate approved state without an authorized workflow.
+
+### 7.5 Retrieval and RAG
+
+Use graph-first retrieval:
+
+1. identify incident, zone, hazard, and time;
+
+1. retrieve typed graph facts;
+
+1. retrieve temporal changes;
+
+1. retrieve relevant episodes and failed attempts;
+
+1. retrieve source evidence;
+
+1. optionally use full-text or vector retrieval to find candidate episodes;
+
+1. ground the final answer through typed graph traversal;
+
+1. return evidence and abstention state.
+
+Do not use vector similarity as the final authority for operational facts.
+
+## 8. Data model requirements
+
+Preserve or implement these core labels:
+
+```
+Tenant
+Incident
+Watch
+Session
+Agent
+Human
+Hazard
+Zone
+Road
+Site
+Constraint
+Household
+Person
+Need
+Shelter
+Resource
+Asset
+Agency
+Authority
+Source
+Evidence
+Observation
+Episode
+Fact
+Procedure
+OpenLoop
+FailedAttempt
+DecisionTrace
+Decision
+Handoff
+Outcome
+```
+
+Important temporal fields:
+
+```
+valid_from
+valid_to
+observed_at
+created_at
+updated_at
+```
+
+Never overwrite an important historical operational fact. Create a replacement fact, close the previous validity interval, and connect it with `SUPERSEDES`.
+
+All public-demo people and households must be synthetic and clearly labeled.
+
+## 9. Production configuration
+
+Create environment-specific configuration without committing secrets:
+
+```
+APP_ENV
+PORT
+PUBLIC_APP_URL
+FALKORDB_URL
+FALKORDB_GRAPH
+FALKORDB_USERNAME
+FALKORDB_PASSWORD
+SESSION_SECRET
+AI_PROVIDER
+AI_MODEL
+LOG_LEVEL
+CORS_ORIGINS
+SENTRY_DSN or equivalent, if available
+```
+
+Add:
+
+- `.env.example` with safe placeholders;
+
+- secret-management instructions;
+
+- production startup command;
+
+- readiness and liveness checks;
+
+- migration/seed command;
+
+- backup command;
+
+- restore command;
+
+- rollback command.
+
+Never expose credentials in frontend code, logs, screenshots, URLs, or committed files.
+
+## 10. Security requirements
+
+Implement the minimum production controls:
+
+- HTTPS-only public URL;
+
+- secure headers;
+
+- strict CORS;
+
+- request size limits;
+
+- input validation;
+
+- rate limiting for mutation endpoints if supported;
+
+- safe error messages;
+
+- no arbitrary Cypher execution;
+
+- no secret values in logs;
+
+- audit log for approval/rejection and state changes;
+
+- synthetic-data warning in the public UI;
+
+- least-privilege FalkorDB credentials;
+
+- read/write separation where supported;
+
+- backups and restore documentation.
+
+If login is added, use secure cookies for public HTTPS preview/deployment, including `SameSite=None; Secure` where the application is embedded cross-site, and implement explicit logout/session expiry behavior.
+
+## 11. Deployment requirements
+
+Choose the best available permanent deployment path after inspecting the platform.
+
+Preferred architecture:
+
+```
+Public HTTPS website
+        |
+        v
+Web application service
+        |
+        +--> FalkorDB persistent service
+        |
+        +--> optional AI model provider
+        |
+        +--> optional object storage for source snapshots/backups
+```
+
+Production requirements:
+
+- pin service versions;
+
+- persistent graph volume or managed graph service;
+
+- startup ordering/readiness checks;
+
+- no reliance on local process memory;
+
+- public HTTPS origin;
+
+- health endpoint;
+
+- documented custom-domain configuration;
+
+- deploy from the correct project/repository;
+
+- verify the final URL after deployment;
+
+- keep Docker Compose for local reproducibility;
+
+- record exact deployed commit/version.
+
+If the platform cannot provide durable FalkorDB persistence, do not falsely label an ephemeral preview as permanent. Instead, deploy the web application and clearly document the remaining graph-hosting decision.
+
+## 12. Required documentation files
+
+Create or update:
+
+```
+plan.md
+TODO.md
+README.md
+ARCHITECTURE.md
+DEPLOYMENT.md
+SECURITY.md
+DATA-MODEL.md
+AGENT-WORKFLOWS.md
+DEMO-SCRIPT.md
+.env.example
+```
+
+### `ARCHITECTURE.md`
+
+Include the production topology, data flow, failure modes, persistence, and trust boundaries.
+
+### `DEPLOYMENT.md`
+
+Include local Docker Compose, staging, production, required secrets, health checks, migrations, backups, restore, rollback, and custom-domain steps.
+
+### `DATA-MODEL.md`
+
+Include graph labels, relationships, property conventions, temporal semantics, indexes, seed strategy, and provenance rules.
+
+### `AGENT-WORKFLOWS.md`
+
+Include typed inputs/outputs, state transitions, abstention rules, reviewer rules, and handoff behavior.
+
+### `DEMO-SCRIPT.md`
+
+Include a 2–3 minute live demo:
+
+1. Start at 14:00.
+
+1. Generate a Shelter A recommendation.
+
+1. Show the graph evidence path.
+
+1. Inject the West Connector closure and Shelter A capacity change.
+
+1. Show the superseded facts.
+
+1. Re-run planning at 18:00.
+
+1. Show Civic Arena as the changed fallback.
+
+1. Show the previous failed attempt.
+
+1. Assign the open loop to Incoming Watch.
+
+1. Approve the new decision as a human.
+
+1. Show the audit/outcome record.
+
+## 13. Validation gates
+
+Do not claim completion until all applicable gates pass.
+
+### Code and configuration
+
+- Python/TypeScript/JavaScript diagnostics are clean or documented.
+
+- Build command succeeds.
+
+- Production start command succeeds.
+
+- Environment variable validation works.
+
+- Dockerfile builds where Docker is available.
+
+- Compose file is syntactically valid.
+
+- FalkorDB image version is pinned for production.
+
+- `/manus-routes.json` returns valid route JSON.
+
+### API and graph
+
+- health endpoint returns application and graph readiness;
+
+- schema migration is idempotent;
+
+- seed migration is idempotent;
+
+- current-state query works;
+
+- historical-state query works;
+
+- supersession query works;
+
+- closure event changes the plan;
+
+- failed attempt is returned to the next agent;
+
+- open-loop assignment persists;
+
+- decision approval persists;
+
+- evidence path is returned;
+
+- unsupported decisions are blocked or marked for review;
+
+- restart does not erase production graph state.
+
+### UX
+
+- public page loads over HTTPS;
+
+- no console-breaking errors;
+
+- loading and error states are visible;
+
+- synthetic demo status is obvious;
+
+- change states are visually distinguishable;
+
+- approval action is explicit;
+
+- graph evidence is understandable;
+
+- layout works on desktop and mobile widths;
+
+- keyboard focus and contrast are acceptable.
+
+### Operations
+
+- deployment URL verified;
+
+- graph persistence verified after application restart;
+
+- logs identify startup, graph readiness, and version;
+
+- backup and restore instructions tested or clearly marked as pending;
+
+- rollback instructions documented;
+
+- no secrets committed;
+
+- final commit/version recorded.
+
+## 14. Final response format
+
+When finished, respond with:
+
+1. **What was built** — concise summary.
+
+1. **Public URL** — exact HTTPS URL.
+
+1. **Repository/project location** — exact path or repository link.
+
+1. **Architecture** — short production topology.
+
+1. **FalkorDB status** — graph name, persistence approach, and readiness result.
+
+1. **Demo walkthrough** — exact steps for a reviewer.
+
+1. **Validation evidence** — commands and outcomes.
+
+1. **Known limitations** — honest list.
+
+1. **Next recommended improvements** — prioritized.
+
+1. **Rollback instructions** — exact commands or platform actions.
+
+Do not say “deployed” unless the final URL was actually checked and returned a successful response.
+
+## 15. Definition of done
+
+The task is complete only when:
+
+- WatchChange Mesh is accessible through a stable public HTTPS URL;
+
+- the website presents a polished mission-control experience;
+
+- the application uses durable FalkorDB-backed state in the permanent environment;
+
+- the temporal comparison, handoff, failed-attempt, planning, evidence, and approval flows work;
+
+- the graph remains intact after an application restart;
+
+- production configuration and secrets are documented without exposing secret values;
+
+- the project contains the required plan, architecture, deployment, security, data-model, agent-workflow, and demo documents;
+
+- the final URL, version, validation evidence, limitations, and rollback path are reported.
+
+Begin by inspecting the existing project and environment. Then create `plan.md` and `TODO.md`, implement the highest-risk persistence and deployment decisions first, and continue through publication without stopping at an analysis-only answer.
+
+## End of Agent Prompt
+
+---
+
+## Suggested first message when using the prompt
+
+After pasting the prompt, add:
+
+> Start now. Use the existing WatchChange Mesh project as the source of truth. Do not rewrite working functionality unnecessarily. First inspect the repository, current deployment capabilities, and existing environment configuration. Then create `plan.md` and `TODO.md`, show me the chosen permanent architecture, and proceed through implementation, validation, and deployment. If a protected login, billing, domain, or secret is required, stop only at that exact boundary and tell me precisely what I need to provide.
+
+## Reference material
+
+- Existing implementation: `/home/ubuntu/watchchange-mesh`
+
+- Existing OpenCypher playbook: `/home/ubuntu/reports/watchchange-mesh-opencypher.md`
+
+- Existing Docker Compose deployment: `/home/ubuntu/watchchange-mesh/docker-compose.yml`
+
+- Existing schema: `/home/ubuntu/watchchange-mesh/schema.cypher`
+
+- FalkorDB hackathon: [https://www.wemakedevs.org/hackathons/falkordb](https://www.wemakedevs.org/hackathons/falkordb)
+
+- FalkorDB rules: [https://www.wemakedevs.org/hackathons/falkordb/rules](https://www.wemakedevs.org/hackathons/falkordb/rules)
+
+- FalkorDB resources: [https://www.wemakedevs.org/hackathons/falkordb/resources](https://www.wemakedevs.org/hackathons/falkordb/resources)
+
+- FalkorDB documentation: [https://docs.falkordb.com/](https://docs.falkordb.com/)
+
+- FalkorDB GraphRAG SDK: [https://github.com/FalkorDB/GraphRAG-SDK](https://github.com/FalkorDB/GraphRAG-SDK)
+
+- SupportDesk RAG workshop: [https://github.com/singhsidhukuldeep/SupportDesk-RAG-Workshop](https://github.com/singhsidhukuldeep/SupportDesk-RAG-Workshop)
+
+- Frontier engineering principles: [https://kiro.dev/topics/frontier-engineering/](https://kiro.dev/topics/frontier-engineering/)  # WatchChange Mesh — Product-First FalkorDB Hackathon Build Prompt
+
+> This prompt is for an AI coding agent that must build the **hackathon product**, not just a website. The website is only the demo interface for the product. Paste the complete **Agent Instruction** section into the coding agent.
+
+## Agent Instruction
+
+You are an expert hackathon product builder, graph-database engineer, multi-agent systems architect, product designer, full-stack developer, and technical storyteller. Your mission is to build a compelling, working, demo-ready FalkorDB hackathon product called **WatchChange Mesh**.
+
+Do not treat this task as “make a website.” Build the underlying product: its graph model, temporal memory, agent workflows, evidence-grounded planning, reviewer loop, handoff continuity, state changes, tests, demo scenario, and explainable user experience. The web UI is only the surface through which judges experience the product.
+
+You must work from inspection to implementation to validation. Produce working code and a runnable demo, not a concept document alone.
+
+---
+
+# 1. Product to build
+
+## Product name
+
+**WatchChange Mesh**
+
+## One-sentence pitch
+
+> WatchChange Mesh is a human-approved disaster-coordination system that turns a changing hazard into an evidence-backed shelter, resource, and route plan while preserving what the previous watch knew, tried, decided, and left unresolved.
+
+## Product thesis
+
+When a disaster situation changes, the hardest problem is not finding another document. It is maintaining a trustworthy shared operational state across time and across agents.
+
+WatchChange Mesh must answer:
+
+1. What was true at the previous watch?
+
+1. What is true now?
+
+1. What changed and which facts were superseded?
+
+1. What did the previous agent try and fail to do?
+
+1. Which open tasks have no owner?
+
+1. Which shelter/resource/route plan is feasible now?
+
+1. What evidence supports the proposed plan?
+
+1. What prevents approval?
+
+1. What must a human approve before the plan is considered valid?
+
+The product must visibly demonstrate that **FalkorDB changes the decision**, not merely stores documents behind a chatbot.
+
+---
+
+# 2. Hackathon alignment
+
+Before coding, inspect the current FalkorDB hackathon rules and resources supplied by the user and verify the latest requirements. Treat the following as product constraints to validate against the official rules before submission:
+
+- FalkorDB must be central to the application.
+
+- The product must use graph-native connected data or graph-native memory in a meaningful way.
+
+- The demonstration must show a real product capability rather than a static mockup.
+
+- The entry must fit one of the hackathon tracks.
+
+- The project must be reproducible and explain how to run it.
+
+- The product must be demonstrable within a short judging window.
+
+- Any claims about accuracy, novelty, safety, or benchmarks must be clearly labeled as measured evidence, sourced fact, or product hypothesis.
+
+## Track positioning
+
+**Primary track:** Track 2 — Agent Memory and Coordination
+**Secondary track:** Track 1 — Agents That Act on Connected Data
+
+## Why this product fits
+
+### Track 2: Agent Memory and Coordination
+
+The product includes:
+
+- persistent session memory;
+
+- bi-temporal facts;
+
+- shift handoffs;
+
+- failed-attempt memory;
+
+- unresolved open loops;
+
+- shared decisions;
+
+- agent ownership;
+
+- reviewer feedback;
+
+- outcome recording;
+
+- continuation after an outgoing agent stops.
+
+### Track 1: Agents That Act on Connected Data
+
+The product includes:
+
+- hazard-to-zone traversal;
+
+- zone-to-household and need traversal;
+
+- shelter-capacity matching;
+
+- agency-authority checking;
+
+- asset availability checking;
+
+- route reachability;
+
+- constraint filtering;
+
+- graph-grounded plan generation;
+
+- human-approved state transitions.
+
+## Judging signals to optimize for
+
+Build for these observable signals:
+
+1. **The graph does real work.** The recommendation requires a typed multi-hop graph traversal.
+
+1. **The product acts or coordinates.** Agents propose plans, create decisions, assign open work, write back memory, and request approval.
+
+1. **The result is inspectable.** Every plan returns a path, facts, sources, timestamps, assumptions, confidence, and blockers.
+
+1. **The demo contains a memorable state change.** A road closure or shelter capacity change must visibly change the recommendation.
+
+1. **The product is focused.** One bounded county/event scenario is better than a fake global platform.
+
+1. **The product is honest.** It is decision support, not autonomous emergency dispatch.
+
+---
+
+# 3. The winning demo scenario
+
+Build one fictional but realistic flood scenario for one bounded county or city. Use synthetic households and cached public-source-style fixtures.
+
+## Baseline at 14:00
+
+- A flood hazard affects West Basin.
+
+- Several synthetic households have mobility, food, or medical needs.
+
+- Riverside High / Shelter A has available capacity.
+
+- West Connector is open.
+
+- An accessible bus is staged at West Basin.
+
+- The outgoing watch recommends Shelter A.
+
+- The recommendation includes the graph path and source evidence.
+
+- One previous attempt failed because North School was not accessible.
+
+- One open loop is still unowned.
+
+## Change at 16:30
+
+Inject two new graph facts:
+
+1. West Connector is closed.
+
+1. Shelter A capacity drops to 8 available cots.
+
+Do not overwrite history. Create new `Fact` nodes, expire/supersede old facts, and record an `Episode`.
+
+## Incoming watch at 18:00
+
+The incoming agent must:
+
+1. accept the handoff;
+
+1. reconstruct the 14:00 state;
+
+1. reconstruct the current state;
+
+1. compare the states;
+
+1. identify the closed route;
+
+1. identify the changed shelter capacity;
+
+1. retrieve the failed North School attempt;
+
+1. detect the unowned open loop;
+
+1. reject the stale Shelter A plan;
+
+1. propose Civic Arena as the fallback;
+
+1. show the evidence path;
+
+1. send the proposal to a reviewer;
+
+1. require human approval;
+
+1. write the approved decision and later outcome back to FalkorDB.
+
+## The 30-second memorable moment
+
+The presenter says:
+
+> “At 14:00, Shelter A was correct. At 18:00, it is not. WatchChange Mesh does not blindly repeat the old plan: FalkorDB shows the route closure, the superseded capacity fact, the failed accessibility attempt, and the new graph path to Civic Arena before a human approves the change.”
+
+---
+
+# 4. Product requirements
+
+## 4.1 Graph-native operational model
+
+Implement at least these labels:
+
+```
+Tenant
+Incident
+Watch
+Session
+Agent
+Human
+Hazard
+Zone
+Road
+Site
+Constraint
+Household
+Person
+Need
+Shelter
+Resource
+Asset
+Agency
+Authority
+Source
+Evidence
+Observation
+Episode
+Fact
+Procedure
+OpenLoop
+FailedAttempt
+DecisionTrace
+Decision
+Handoff
+Outcome
+```
+
+Implement relationships including:
+
+```
+Tenant -[:OWNS_INCIDENT]-> Incident
+Incident -[:HAS_HAZARD]-> Hazard
+Hazard -[:AFFECTS]-> Zone
+Zone -[:CONTAINS]-> Household
+Household -[:HAS_NEED]-> Need
+Zone -[:HAS_SHELTER]-> Shelter
+Zone -[:HAS_CONSTRAINT]-> Constraint
+Agency -[:HAS_AUTHORITY]-> Zone
+Agency -[:CONTROLS]-> Asset
+Asset -[:STAGED_AT]-> Site
+Site -[:CONNECTED_BY]-> Site
+Fact -[:ABOUT]-> subject
+Fact -[:SUPERSEDES]-> Fact
+Fact -[:SUPPORTED_BY]-> Evidence
+Episode -[:MENTIONS]-> Fact
+FailedAttempt -[:ABOUT]-> OpenLoop
+Agent -[:OWNS]-> OpenLoop
+Handoff -[:TRANSFERS]-> OpenLoop
+Decision -[:FOR_ZONE]-> Zone
+Decision -[:USES_FACT]-> Fact
+Decision -[:SUPPORTED_BY]-> Evidence
+DecisionTrace -[:PROPOSED]-> Decision
+Decision -[:REQUIRES_APPROVAL_FROM]-> Human
+Decision -[:LED_TO]-> Outcome
+```
+
+Use deterministic application IDs and separate graph names for tenant/incident isolation.
+
+## 4.2 Bi-temporal memory
+
+Every important operational fact must support:
+
+```
+valid_from
+valid_to
+observed_at
+created_at
+updated_at
+source_id
+confidence
+status
+```
+
+Use two timelines:
+
+- **Valid time:** when the fact was true in the modeled disaster world.
+
+- **Observation/transaction time:** when the system learned or recorded the fact.
+
+When a fact changes:
+
+1. create a new fact;
+
+1. close the old fact’s validity interval;
+
+1. mark the old fact `SUPERSEDED` where appropriate;
+
+1. add `[:SUPERSEDES]`;
+
+1. retain the historical fact for reconstruction.
+
+The UI and agents must be able to answer:
+
+- “What was true at 14:00?”
+
+- “What is true now?”
+
+- “Which facts changed?”
+
+- “Which old decision is invalid because its evidence expired?”
+
+## 4.3 Agent roles
+
+Implement these bounded roles:
+
+### Ingestor
+
+- normalizes synthetic/public fixture events;
+
+- creates typed nodes;
+
+- records source URL, hash, timestamp, and confidence;
+
+- never silently merges uncertain entities.
+
+### Outgoing Watch
+
+- records the current shift state;
+
+- creates episodes;
+
+- records failed attempts;
+
+- creates/updates open loops;
+
+- creates a handoff package.
+
+### Incoming Watch
+
+- accepts the handoff;
+
+- retrieves current and historical state;
+
+- identifies changes and unowned work;
+
+- continues from shared graph memory.
+
+### Planner
+
+- traverses hazard → zone → needs → shelter → agency → asset → route;
+
+- filters capacity, accessibility, authority, freshness, and constraints;
+
+- ranks feasible candidates;
+
+- returns a typed proposal, not an uncontrolled action.
+
+### Reviewer
+
+- checks stale or superseded facts;
+
+- checks source freshness;
+
+- checks route availability;
+
+- checks shelter capacity;
+
+- checks accessibility;
+
+- checks authority;
+
+- checks contradictory facts;
+
+- checks whether a previous failed attempt is being repeated;
+
+- blocks or returns the proposal for human review.
+
+### Human Approver
+
+- approves or rejects a proposal;
+
+- records the approver, time, rationale, and status;
+
+- is required before an action becomes `APPROVED`.
+
+### Coordinator
+
+- owns shared state transitions;
+
+- assigns open loops;
+
+- records handoff acceptance;
+
+- records outcomes;
+
+- never hides the audit trail.
+
+## 4.4 Agent response contract
+
+Every planner/reviewer result must be structured and include:
+
+```json
+{
+  "status": "PROPOSED",
+  "action": "Transfer west-side households to Civic Arena",
+  "reference_time": "2026-10-15T18:00:00Z",
+  "confidence": 0.88,
+  "assumptions": [
+    "Civic Arena remains open",
+    "County Transit authority is confirmed"
+  ],
+  "graph_path": [
+    "hazard_river_rise",
+    "zone_west",
+    "shelter_b",
+    "asset_bus_01",
+    "road_north_civic"
+  ],
+  "evidence_ids": [
+    "fact_road_west_1630",
+    "fact_shelter_a_1630",
+    "episode_failed_bus"
+  ],
+  "blocking_reasons": [],
+  "requires_human_approval": true
+}
+```
+
+Allowed states should include:
+
+```
+DRAFT
+PROPOSED
+IN_REVIEW
+BLOCKED
+ABSTAINED
+APPROVED
+REJECTED
+EXECUTED_IN_SIMULATION
+COMPLETED
+```
+
+If evidence is missing, stale, contradictory, or outside authority, return `BLOCKED` or `ABSTAINED`. Never invent confidence.
+
+---
+
+# 5. FalkorDB requirements
+
+FalkorDB must be the primary product mechanism, not an optional storage layer.
+
+## Required FalkorDB usage
+
+Use FalkorDB for:
+
+- operational graph state;
+
+- temporal facts;
+
+- agent memory;
+
+- handoffs;
+
+- failed attempts;
+
+- open loops;
+
+- decisions;
+
+- evidence links;
+
+- graph-native plan generation;
+
+- path/reachability checks;
+
+- audit history.
+
+Use parameterized OpenCypher queries through the Redis graph protocol. Use read-only graph queries for planner/reviewer retrieval and atomic writes for state transitions.
+
+## Required indexes
+
+Create indexes for:
+
+- IDs;
+
+- hazard status and observed time;
+
+- shelter status, capacity, and occupancy;
+
+- road status;
+
+- fact validity windows;
+
+- episode time;
+
+- open-loop status and due time;
+
+- decision status and reference time.
+
+Use full-text or vector search only to locate candidate memories/evidence. Final operational answers must be grounded through typed graph traversal.
+
+## Graph queries to implement
+
+At minimum implement and expose:
+
+1. active hazards and affected zones;
+
+1. needs by affected zone;
+
+1. shelters with available capacity;
+
+1. authority and controlled assets;
+
+1. candidate plan traversal;
+
+1. evidence path for a decision;
+
+1. facts true at a reference time;
+
+1. changes between two watch times;
+
+1. supersession chain;
+
+1. failed attempts for an open loop;
+
+1. unowned open loops;
+
+1. handoff context;
+
+1. stale/invalid approved decisions;
+
+1. contradictory current facts;
+
+1. human approval write;
+
+1. outcome recording.
+
+Use graph algorithms only where validated against the pinned FalkorDB version. A transparent Cypher-based candidate ranking is preferable to an untested optimization algorithm.
+
+---
+
+# 6. RAG and evidence architecture
+
+Build a graph-first RAG pipeline:
+
+```
+Fixture/source event
+  -> normalization
+  -> entity resolution
+  -> typed graph write
+  -> temporal fact/versioning
+  -> graph traversal retrieval
+  -> optional full-text/vector candidate retrieval
+  -> deterministic constraint checks
+  -> planner proposal
+  -> reviewer challenge
+  -> human approval
+  -> outcome write-back
+```
+
+Every source record should include:
+
+```
+provider
+url
+source_type
+retrieved_at
+published_at
+content_hash
+license
+reliability
+snapshot_path
+```
+
+Every evidence record should include:
+
+```
+quote
+source_span
+observed_at
+confidence
+```
+
+Use cached fixture data so the demo works offline. If live public sources are used, record timestamps, source URLs, rate-limit handling, and a fallback fixture.
+
+Do not claim that the system is operationally accurate merely because it retrieved a source or produced a high confidence score.
+
+---
+
+# 7. User experience requirements
+
+Build the smallest interface that makes the product’s intelligence obvious.
+
+Required sections:
+
+1. **Incident overview** — hazard, affected zones, current time, graph status.
+
+1. **Before vs. now** — baseline and current shelter/route/fact comparison.
+
+1. **Agent handoff** — outgoing/incoming watch, transferred loops, failed attempts.
+
+1. **Plan proposal** — action, confidence, assumptions, blockers, approval state.
+
+1. **Evidence path** — hazard → zone → need → shelter → asset → route → source.
+
+1. **Graph change feed** — newly observed, superseded, expired, or blocked facts.
+
+1. **Human review controls** — approve, reject, assign, request evidence.
+
+1. **Demo reset/replay** — restore the canonical 14:00 scenario and replay the change.
+
+Use the visual style:
+
+- dark operational command center;
+
+- cyan graph connections;
+
+- amber review states;
+
+- red hazard/closure states;
+
+- green verified/approved states;
+
+- timestamp and ID typography;
+
+- clear status badges;
+
+- accessible contrast;
+
+- no decorative AI imagery that distracts from the graph and temporal change.
+
+The UI must clearly label the public scenario as:
+
+> Synthetic disaster-coordination demo — not a live emergency service.
+
+---
+
+# 8. Build plan
+
+Execute in this order.
+
+## Phase 1 — Product freeze
+
+- inspect existing project;
+
+- verify official hackathon requirements;
+
+- freeze one scenario and one demo narrative;
+
+- define acceptance cases;
+
+- create/update `plan.md` and `TODO.md`;
+
+- identify what is already implemented and reuse it.
+
+## Phase 2 — FalkorDB foundation
+
+- pin a FalkorDB image version;
+
+- start FalkorDB locally;
+
+- create graph and indexes;
+
+- implement idempotent schema migration;
+
+- implement idempotent seed fixtures;
+
+- verify graph query/read/write health;
+
+- add graph persistence/restart test.
+
+## Phase 3 — Temporal memory
+
+- implement `Fact` creation and supersession;
+
+- implement point-in-time reconstruction;
+
+- implement change detection;
+
+- implement episodes, failed attempts, open loops, and outcomes;
+
+- implement handoff creation and acceptance.
+
+## Phase 4 — Planner and reviewer
+
+- implement candidate plan traversal;
+
+- implement capacity/accessibility/authority/route checks;
+
+- implement evidence path serialization;
+
+- implement planner response schema;
+
+- implement reviewer response schema;
+
+- implement abstention and blocking behavior;
+
+- write proposals and reviews back to FalkorDB.
+
+## Phase 5 — Product interface
+
+- upgrade the current UI around the product workflow;
+
+- add temporal comparison;
+
+- add graph path display;
+
+- add handoff and failed-attempt panels;
+
+- add review and approval controls;
+
+- add replay/reset controls;
+
+- add error/loading/degraded states.
+
+## Phase 6 — Scenario validation
+
+Run scripted cases:
+
+1. baseline plan selects Shelter A;
+
+1. road closure removes Shelter A route;
+
+1. capacity reduction invalidates Shelter A;
+
+1. Civic Arena becomes the fallback;
+
+1. failed North School attempt is surfaced;
+
+1. missing authority blocks approval;
+
+1. stale evidence triggers review;
+
+1. contradictory facts trigger abstention;
+
+1. unowned loop is detected and assigned;
+
+1. outgoing agent can stop and incoming agent continues;
+
+1. approved decision creates an outcome;
+
+1. graph state survives restart.
+
+## Phase 7 — Hackathon packaging
+
+Create:
+
+```
+README.md
+ARCHITECTURE.md
+DATA-MODEL.md
+AGENT-WORKFLOWS.md
+DEMO-SCRIPT.md
+EVALUATION.md
+SECURITY.md
+.env.example
+Dockerfile
+docker-compose.yml
+schema.cypher
+seed.cypher
+```
+
+The README must explain:
+
+- what product was built;
+
+- why FalkorDB is essential;
+
+- how the graph changes the recommendation;
+
+- how to run it;
+
+- how to reset/replay it;
+
+- how to run tests;
+
+- what is synthetic;
+
+- what is not claimed.
+
+---
+
+# 9. Product acceptance criteria
+
+The product is complete only if all of the following are true:
+
+- FalkorDB is used for the central operational and memory graph.
+
+- The demo cannot produce its core recommendation without graph traversal.
+
+- At least one multi-hop query joins hazard, zone, need, shelter, authority, asset, and route state.
+
+- A road closure or capacity change visibly changes the recommended plan.
+
+- Old facts remain queryable after being superseded.
+
+- The system reconstructs both the baseline and current state.
+
+- The incoming agent sees the outgoing agent’s episodes, failed attempts, decisions, and open loops.
+
+- At least one open loop is assigned through the shared graph.
+
+- Planner output contains a graph path, evidence IDs, assumptions, confidence, and blockers.
+
+- Reviewer output can block a proposal.
+
+- Human approval is required before a decision becomes approved.
+
+- No real personal data is used.
+
+- The system can abstain when evidence is insufficient or conflicting.
+
+- The UI shows why a recommendation changed.
+
+- The graph state survives a process restart in the live mode.
+
+- The full demo works offline from cached fixtures.
+
+- The project can be run from a clean checkout using documented commands.
+
+- The README contains a 2–3 minute demo script.
+
+- The final project includes a clear explanation of why FalkorDB is essential.
+
+---
+
+# 10. Evaluation and winning narrative
+
+Create `EVALUATION.md` that explains the product against these dimensions:
+
+## Graph centrality
+
+Show the exact traversal that produces the candidate plan and explain what would fail if FalkorDB were removed.
+
+## Agent coordination
+
+Show the outgoing-to-incoming handoff and the shared open-loop/failed-attempt memory.
+
+## Explainability
+
+Show the complete path and source evidence behind a plan.
+
+## Adaptation
+
+Show the recommendation changing after a graph update.
+
+## Safety and honesty
+
+Show human approval, abstention, source freshness, synthetic-data labeling, and explicit boundaries.
+
+## Feasibility
+
+Explain why the product is intentionally bounded to one county/event scenario and why that makes the demo reliable.
+
+Use measured results where available. Do not invent benchmark numbers or judge preferences.
+
+---
+
+# 11. Required final handoff from the coding agent
+
+When implementation is complete, return:
+
+1. What product was built.
+
+1. Which hackathon track it targets.
+
+1. Why FalkorDB is essential.
+
+1. Product architecture.
+
+1. Graph schema and key queries.
+
+1. Agent roles and state transitions.
+
+1. Exact demo steps.
+
+1. Test commands and outcomes.
+
+1. What is synthetic or simulated.
+
+1. Known limitations.
+
+1. Files created or changed.
+
+1. Run commands.
+
+1. Any required credentials or setup.
+
+1. A final readiness assessment against every acceptance criterion.
+
+Do not report a feature as complete without evidence from the running implementation or a passing test.
+
+Start now by inspecting the existing WatchChange Mesh project, then create/update `plan.md` and `TODO.md`, and proceed to build the product end to end. Do not stop at a website redesign or a planning document.
+
+---
+
+## Existing project references
+
+- Project: `/home/ubuntu/watchchange-mesh`
+
+- Product playbook: `/home/ubuntu/reports/watchchange-mesh-opencypher.md`
+
+- Hackathon research and winning-idea analysis: `/home/ubuntu/reports/falkordb-winning-ideas.md`
+
+- Existing schema: `/home/ubuntu/watchchange-mesh/schema.cypher`
+
+- Existing MVP API: `/home/ubuntu/watchchange-mesh/app.py`
+
+- Existing demo UI: `/home/ubuntu/watchchange-mesh/static/index.html`
+
+- FalkorDB hackathon: [https://www.wemakedevs.org/hackathons/falkordb](https://www.wemakedevs.org/hackathons/falkordb)
+
+- FalkorDB rules: [https://www.wemakedevs.org/hackathons/falkordb/rules](https://www.wemakedevs.org/hackathons/falkordb/rules)
+
+- FalkorDB resources: [https://www.wemakedevs.org/hackathons/falkordb/resources](https://www.wemakedevs.org/hackathons/falkordb/resources)
+
+- FalkorDB docs: [https://docs.falkordb.com/](https://docs.falkordb.com/)
+
+- FalkorDB GraphRAG SDK: [https://github.com/FalkorDB/GraphRAG-SDK](https://github.com/FalkorDB/GraphRAG-SDK)
+
+- SupportDesk RAG workshop: [https://github.com/singhsidhukuldeep/SupportDesk-RAG-Workshop](https://github.com/singhsidhukuldeep/SupportDesk-RAG-Workshop)
+
+- Frontier engineering reference: [https://kiro.dev/topics/frontier-engineering/](https://kiro.dev/topics/frontier-engineering/)
+
+## End of Agent Instruction

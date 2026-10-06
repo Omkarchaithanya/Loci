@@ -1,0 +1,27 @@
+// WatchChange Mesh — FalkorDB v4.20.4 indexes for graph watchchange_flood_demo
+CREATE INDEX FOR (n:Tenant) ON (n.id);
+CREATE INDEX FOR (n:Incident) ON (n.id);
+CREATE INDEX FOR (n:Hazard) ON (n.id);
+CREATE INDEX FOR (n:Zone) ON (n.id);
+CREATE INDEX FOR (n:Shelter) ON (n.id);
+CREATE INDEX FOR (n:Road) ON (n.id);
+CREATE INDEX FOR (n:Site) ON (n.id);
+CREATE INDEX FOR (n:Agency) ON (n.id);
+CREATE INDEX FOR (n:Asset) ON (n.id);
+CREATE INDEX FOR (n:Household) ON (n.id);
+CREATE INDEX FOR (n:Person) ON (n.id);
+CREATE INDEX FOR (n:Hazard) ON (n.status);
+CREATE INDEX FOR (n:Hazard) ON (n.severity);
+CREATE INDEX FOR (n:Hazard) ON (n.valid_from);
+CREATE INDEX FOR (n:Hazard) ON (n.valid_to);
+CREATE INDEX FOR (n:Shelter) ON (n.status);
+CREATE INDEX FOR (n:Road) ON (n.status);
+CREATE INDEX FOR (n:Fact) ON (n.valid_from);
+CREATE INDEX FOR (n:Fact) ON (n.valid_to);
+CREATE INDEX FOR (n:Fact) ON (n.observed_at);
+CREATE INDEX FOR (n:OpenLoop) ON (n.status);
+CREATE INDEX FOR (n:Decision) ON (n.status);
+CREATE INDEX FOR (n:Episode) ON (n.occurred_at);
+CREATE FULLTEXT INDEX FOR (n:Episode) ON (n.text);
+CREATE FULLTEXT INDEX FOR (n:Evidence) ON (n.quote);
+CREATE FULLTEXT INDEX FOR (n:OpenLoop) ON (n.title, n.description);

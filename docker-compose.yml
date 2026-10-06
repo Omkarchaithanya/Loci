@@ -1,0 +1,13 @@
+services:
+  falkordb:
+    image: falkordb/falkordb:v4.20.4
+    container_name: watchchange-falkordb
+    ports:
+      - "6379:6379"
+      - "3000:3000"
+    volumes:
+      - falkor-data:/data
+    restart: unless-stopped
+
+volumes:
+  falkor-data:

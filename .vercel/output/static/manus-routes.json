@@ -1,0 +1,7 @@
+{
+  "routes": [
+    { "path": "/", "name": "Mission control", "description": "WatchChange Mesh operational command surface" },
+    { "path": "/api/health", "name": "Health", "description": "Application and graph readiness" },
+    { "path": "/api/plan", "name": "Plan", "description": "Read-only planner traversal" }
+  ]
+}

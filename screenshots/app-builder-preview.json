@@ -1,0 +1,36 @@
+{
+  "url": "http://127.0.0.1:8080/",
+  "viewports": {
+    "desktop": {
+      "width": 1280,
+      "height": 800,
+      "status": 200,
+      "title": "WatchChange Mesh",
+      "hasCanvas": false,
+      "bodyTextLen": 1335,
+      "bodyTextHash": "9000b4ff17417e6226963f64500fffd6b724164b800201366454a8268733d4c8",
+      "bodyTextPrefix": "Skip to content WATCHCHANGE MESH Cedar County flood watch SYNTHE",
+      "horizontalOverflow": false,
+      "consoleErrors": [],
+      "pageErrors": [],
+      "screenshot": "/workspace/screenshots/app-builder-preview.png"
+    },
+    "mobile": {
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "title": "WatchChange Mesh",
+      "hasCanvas": false,
+      "bodyTextLen": 1335,
+      "bodyTextHash": "9000b4ff17417e6226963f64500fffd6b724164b800201366454a8268733d4c8",
+      "bodyTextPrefix": "Skip to content WATCHCHANGE MESH Cedar County flood watch SYNTHE",
+      "horizontalOverflow": true,
+      "consoleErrors": [],
+      "pageErrors": [],
+      "screenshot": "/workspace/screenshots/app-builder-preview-mobile.png"
+    }
+  },
+  "brandWarnings": [],
+  "authWarnings": [],
+  "verdictFile": "/workspace/screenshots/app-builder-preview.json"
+}

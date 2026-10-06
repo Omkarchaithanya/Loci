@@ -1,0 +1,100 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+
+  --color-bg: #0b0d11;
+  --color-surface: #12161c;
+  --color-elevated: #181d26;
+  --color-inset: #0e1116;
+  --color-fg: #e8eef4;
+  --color-muted: #8b96a5;
+  --color-subtle: #6a7482;
+  --color-line: color-mix(in oklab, #e8eef4 12%, transparent);
+  --color-line-strong: color-mix(in oklab, #e8eef4 22%, transparent);
+
+  --color-cyan: #4fd6e8;
+  --color-cyan-dim: color-mix(in oklab, #4fd6e8 16%, transparent);
+  --color-amber: #e0a054;
+  --color-amber-dim: color-mix(in oklab, #e0a054 16%, transparent);
+  --color-hazard: #e05a4f;
+  --color-hazard-dim: color-mix(in oklab, #e05a4f 16%, transparent);
+  --color-ok: #5dba8a;
+  --color-ok-dim: color-mix(in oklab, #5dba8a 16%, transparent);
+
+  --color-background: var(--color-bg);
+  --color-foreground: var(--color-fg);
+  --color-card: var(--color-surface);
+  --color-card-foreground: var(--color-fg);
+  --color-primary: var(--color-cyan);
+  --color-primary-foreground: #071015;
+  --color-secondary: var(--color-elevated);
+  --color-secondary-foreground: var(--color-fg);
+  --color-muted-foreground: var(--color-muted);
+  --color-accent: var(--color-cyan);
+  --color-accent-foreground: #071015;
+  --color-destructive: var(--color-hazard);
+  --color-border: var(--color-line);
+  --color-input: var(--color-line);
+  --color-ring: var(--color-cyan);
+
+  --radius-xs: 4px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+
+  --shadow-border: 0 0 0 1px rgba(255, 255, 255, 0.08);
+  --shadow-border-hover: 0 0 0 1px rgba(255, 255, 255, 0.13);
+}
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  html,
+  body,
+  #app {
+    min-height: 100%;
+    background: var(--color-bg);
+    color: var(--color-fg);
+  }
+
+  body {
+    font-family: var(--font-sans);
+    letter-spacing: -0.01em;
+  }
+
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-cyan);
+    outline-offset: 2px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
