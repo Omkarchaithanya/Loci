@@ -1,20 +1,21 @@
 import { candidatePlans, evidencePacket } from "../graph/queries.ts";
-import type { PropertyGraph } from "../graph/engine.ts";
+import type { GraphStore } from "../graph/store.ts";
 import type { AgentProposal, GraphPathNode } from "./contract.ts";
 
-function node(g: PropertyGraph, id: string, role: string): GraphPathNode | null {
-  const n = g.get(id);
-  if (!n) return null;
-  const name = String(n.props.name ?? n.props.kind ?? n.props.predicate ?? n.id);
-  return { id: n.id, labels: n.labels, name, role };
+async function node(store: GraphStore, id: string, role: string): Promise<GraphPathNode | null> {
+  const res = await store.query("MATCH (n {id: $id}) RETURN n", { id });
+  if (!res.data.length) return null;
+  const n = res.data[0].n;
+  const name = String(n.properties.name ?? n.properties.kind ?? n.properties.predicate ?? n.properties.id);
+  return { id: n.properties.id, labels: n.labels, name, role };
 }
 
-export function planShelterTransfer(
-  g: PropertyGraph,
+export async function planShelterTransfer(
+  store: GraphStore,
   opts: { hazardId: string; referenceTime: string; decisionId?: string },
-): AgentProposal {
-  const ranked = candidatePlans(g, opts.hazardId, opts.referenceTime);
-  const feasible = ranked.filter((c) => c.blockingReasons.length === 0);
+): Promise<AgentProposal> {
+  const ranked = await candidatePlans(store, opts.hazardId, opts.referenceTime);
+  const feasible = ranked.filter((c: any) => c.blockingReasons.length === 0);
   const pick = feasible[0] ?? ranked[0];
   const decisionId = opts.decisionId ?? "d_incoming_plan";
 
@@ -40,36 +41,32 @@ export function planShelterTransfer(
 
   const blocked = pick.blockingReasons.length > 0;
   const path: GraphPathNode[] = [];
-  const push = (id: string, role: string) => {
-    const n = node(g, id, role);
+  const push = async (id: string, role: string) => {
+    const n = await node(store, id, role);
     if (n && !path.some((p) => p.id === n.id)) path.push(n);
   };
 
-  push(opts.hazardId, "hazard");
-  const hazardZones = g.out(opts.hazardId, "AFFECTS");
-  if (hazardZones[0]) push(hazardZones[0].to, "affected-zone");
-  const hh = g.nodesByLabel("Household")[0];
-  if (hh) {
-    push(hh.id, "household");
-    const need = g.out(hh.id, "HAS_NEED")[0];
-    if (need) push(need.to, "need");
+  await push(opts.hazardId, "hazard");
+  const hRes = await store.query("MATCH ({id: $id})-[:AFFECTS]->(z) RETURN z", { id: opts.hazardId });
+  if (hRes.data[0]) await push(hRes.data[0].z.properties.id, "affected-zone");
+  const hhRes = await store.query("MATCH (h:Household)-[:HAS_NEED]->(n:Need) RETURN h, n LIMIT 1");
+  if (hhRes.data[0]) {
+    await push(hhRes.data[0].h.properties.id, "household");
+    await push(hhRes.data[0].n.properties.id, "need");
   }
-  push(pick.shelterId, "shelter");
-  push(pick.zoneId, "shelter-zone");
-  for (const site of pick.routeSiteIds) push(site, "site");
-  for (const road of pick.routeRoadIds) push(road, "road");
-  if (pick.authorityAgencyId) push(pick.authorityAgencyId, "agency");
-  if (pick.assetId) push(pick.assetId, "asset");
+  await push(pick.shelterId, "shelter");
+  await push(pick.zoneId, "shelter-zone");
+  for (const site of pick.routeSiteIds) await push(site, "site");
+  for (const road of pick.routeRoadIds) await push(road, "road");
+  if (pick.authorityAgencyId) await push(pick.authorityAgencyId, "agency");
+  if (pick.assetId) await push(pick.assetId, "asset");
 
   const factIds: string[] = [];
-  for (const f of g.nodesByLabel("Fact")) {
-    const about = g.out(f.id, "ABOUT")[0];
-    if (!about) continue;
-    if (about.to === pick.shelterId || pick.routeRoadIds.includes(about.to) || about.to === "road_west_connector" || about.to === "road_north_civic") {
-      if (f.props.status === "VALID") factIds.push(f.id);
-    }
+  const fRes = await store.query("MATCH (f:Fact)-[:ABOUT]->(about) WHERE f.status = 'VALID' AND about.id IN $ids RETURN f", { ids: [pick.shelterId, ...pick.routeRoadIds, 'road_west_connector', 'road_north_civic'] });
+  for (const row of fRes.data) {
+    factIds.push(row.f.properties.id);
   }
-  const evidence = evidencePacket(g, factIds);
+  const evidence = await evidencePacket(store, factIds);
 
   const assumptions = [
     `${pick.shelterName} remains OPEN at ${opts.referenceTime}`,
@@ -77,13 +74,23 @@ export function planShelterTransfer(
     pick.destinationAuthority ? "Destination authority is present in the graph" : "Destination authority still unconfirmed",
   ];
 
+  let routeStr = "open route";
+  if (pick.routeRoadIds.length > 0) {
+    const names = [];
+    for (const id of pick.routeRoadIds) {
+      const res = await store.query("MATCH (n {id: $id}) RETURN n.name as name", { id });
+      names.push(res.data[0]?.name ?? id);
+    }
+    routeStr = names.join(" → ");
+  }
+
   const action = blocked
     ? `Do not send West Basin households to ${pick.shelterName} until blockers clear`
-    : `Transfer West Basin households to ${pick.shelterName} via ${pick.routeRoadIds.map((id) => g.get(id)?.props.name ?? id).join(" → ") || "open route"}`;
+    : `Transfer West Basin households to ${pick.shelterName} via ${routeStr}`;
 
   const confidence = blocked
     ? Math.max(0.2, 0.45 - pick.blockingReasons.length * 0.05)
-    : Math.min(0.94, 0.7 + pick.planScore * 0.2);
+    : Math.min(0.94, 0.7 + (pick.score ?? 0) * 0.2);
 
   return {
     status: blocked ? "BLOCKED" : "PROPOSED",
@@ -91,7 +98,7 @@ export function planShelterTransfer(
     reference_time: opts.referenceTime,
     confidence: Number(confidence.toFixed(2)),
     assumptions,
-    evidence_ids: evidence.map((e) => e.evidenceId),
+    evidence_ids: evidence.map((e: any) => e.evidenceId),
     fact_ids: factIds,
     graph_path: path,
     blocking_reasons: pick.blockingReasons,
@@ -101,11 +108,11 @@ export function planShelterTransfer(
     route_road_ids: pick.routeRoadIds,
     decision_id: decisionId,
     planner_notes: blocked
-      ? `Top-ranked graph candidate is ${pick.shelterName} (score ${pick.planScore}) but the reviewer must see blockers. Ranked: ${ranked.map((c) => `${c.shelterName}:${c.planScore}`).join(" · ")}`
-      : `Graph ranking selected ${pick.shelterName} (score ${pick.planScore}). Capacity coverage ${Math.round(pick.capacityCoverage * 100)}%, route ${pick.routeMinutes} min.`,
+      ? `Top-ranked graph candidate is ${pick.shelterName} (score ${pick.score}) but the reviewer must see blockers.`
+      : `Graph ranking selected ${pick.shelterName} (score ${pick.score}). Capacity coverage ${Math.round((pick.capacityCoverage??1) * 100)}%, route ${pick.routeMinutes} min.`,
   };
 }
 
-export function rankTable(g: PropertyGraph, hazardId: string, t: string) {
-  return candidatePlans(g, hazardId, t);
+export async function rankTable(store: GraphStore, hazardId: string, t: string) {
+  return await candidatePlans(store, hazardId, t);
 }

@@ -1,19 +1,37 @@
-import { PropertyGraph } from "./engine.ts";
+import type { GraphStore } from "./store.ts";
 import { supersedeFact } from "./temporal.ts";
 import { GRAPH_NAME, T14, T1630, T_HANDOFF } from "./types.ts";
 
 const NOW = T14;
 
-function n(g: PropertyGraph, labels: string[], id: string, props: Record<string, string | number | boolean | null | string[]>) {
-  g.mergeNode(labels, id, { id, ...props });
+class BatchBuilder {
+  public nodeLabels: Record<string, string> = {};
+  public nodesByLabel: Record<string, any[]> = {};
+  public relsByType: Record<string, any[]> = {};
+
+  addNode(labels: string[], id: string, props: any) {
+    const label = labels[0];
+    this.nodeLabels[id] = label;
+    if (!this.nodesByLabel[label]) this.nodesByLabel[label] = [];
+    this.nodesByLabel[label].push({ id, ...props });
+  }
+
+  addRel(type: string, from: string, to: string, props: any) {
+    if (!this.relsByType[type]) this.relsByType[type] = [];
+    this.relsByType[type].push({ from, to, props });
+  }
 }
 
-function r(g: PropertyGraph, type: string, from: string, to: string, props: Record<string, string | number | boolean | null | string[]> = {}) {
-  g.mergeRel(type, from, to, props);
+function n(g: BatchBuilder, labels: string[], id: string, props: Record<string, string | number | boolean | null | string[]>) {
+  g.addNode(labels, id, props);
+}
+
+function r(g: BatchBuilder, type: string, from: string, to: string, props: Record<string, string | number | boolean | null | string[]> = {}) {
+  g.addRel(type, from, to, props);
 }
 
 function fact(
-  g: PropertyGraph,
+  g: BatchBuilder,
   id: string,
   subject: string,
   predicate: string,
@@ -51,8 +69,10 @@ function fact(
   r(g, "ABOUT", evidenceId, subject);
 }
 
-export function seedBaseline(): PropertyGraph {
-  const g = new PropertyGraph(GRAPH_NAME);
+export async function seedBaseline(store: GraphStore): Promise<void> {
+  const g = new BatchBuilder();
+  
+  
 
   n(g, ["Tenant"], "tenant_cedar", { name: "Cedar County OEM", created_at: NOW });
   n(g, ["Incident"], "inc_cedar_flood", {
@@ -205,13 +225,12 @@ export function seedBaseline(): PropertyGraph {
     updated_at: NOW,
   });
 
-  function link(from: string, to: string, roadId: string) {
-    const road = g.must(roadId);
+  function link(from: string, to: string, roadId: string, dist: number, mins: number) {
     r(g, "CONNECTED_BY", from, to, {
       road_id: roadId,
-      distance_km: Number(road.props.distance_km),
-      travel_minutes: Number(road.props.travel_minutes),
-      status: String(road.props.status),
+      distance_km: dist,
+      travel_minutes: mins,
+      status: "OPEN",
       valid_from: T14,
       valid_to: null,
       source_id: "src_dot_1400",
@@ -219,10 +238,10 @@ export function seedBaseline(): PropertyGraph {
     r(g, "CONNECTS_TO", roadId, from);
     r(g, "CONNECTS_TO", roadId, to);
   }
-  link("site_west_neighborhoods", "site_riverside_high", "road_west_connector");
-  link("site_west_neighborhoods", "site_civic_arena", "road_north_civic");
-  link("site_west_neighborhoods", "site_north_school", "road_ridge");
-  link("site_civic_arena", "site_east_gym", "road_civic_loop");
+  link("site_west_neighborhoods", "site_riverside_high", "road_west_connector", 3.2, 8);
+  link("site_west_neighborhoods", "site_civic_arena", "road_north_civic", 5.4, 14);
+  link("site_west_neighborhoods", "site_north_school", "road_ridge", 4.1, 11);
+  link("site_civic_arena", "site_east_gym", "road_civic_loop", 1.6, 5);
 
   n(g, ["Hazard"], "hazard_river_rise", {
     kind: "flood",
@@ -582,109 +601,99 @@ export function seedBaseline(): PropertyGraph {
   r(g, "TRANSFERS", "handoff_1755", "ol_west_overflow");
   r(g, "CREATED_HANDOFF", "ep_outgoing_1400", "handoff_1755");
 
-  return g;
-}
+    const ALLOWED_LABELS = new Set(["Tenant", "Incident", "Watch", "Agent", "Human", "Session", "Zone", "Site", "Road", "Hazard", "Constraint", "Source", "Household", "Person", "Need", "Shelter", "Agency", "Asset", "Fact", "Evidence", "OpenLoop", "FailedAttempt", "Episode", "Decision", "Handoff", "DecisionTrace", "Outcome"]);
+  const ALLOWED_RELS = new Set(["OWNS_INCIDENT", "HAS_WATCH", "MEMBER_OF", "HAS_SESSION", "RUN_BY", "CONTAINS", "CONNECTED_BY", "CONNECTS_TO", "HAS_HAZARD", "AFFECTS", "HAS_CONSTRAINT", "SUPPORTS", "LOCATED_IN", "HAS_NEED", "HAS_SHELTER", "STAGED_AT", "HAS_AUTHORITY", "OPERATES", "WORKS_FOR", "REPRESENTS", "CONTROLS", "CAN_SERVE", "ABOUT", "SUPPORTED_BY", "FROM_SOURCE", "DEPENDS_ON", "TARGETS", "RECORDED", "MENTIONS", "CREATED", "RECORDED_ATTEMPT", "FOR_INCIDENT", "FOR_ZONE", "USES_FACT", "MADE", "REQUIRES_APPROVAL_FROM", "RECORDED_DECISION", "HAS_HANDOFF", "FROM_AGENT", "TO_AGENT", "TRANSFERS", "CREATED_HANDOFF", "SUPERSEDES", "OBSERVED", "LED_TO", "RECORDED_OUTCOME", "OWNS", "PROPOSED"]);
 
-export function injectChange1630(g: PropertyGraph): void {
-  g.setProps("road_west_connector", {
-    status: "CLOSED",
-    closed_at: T1630,
-    closed_reason: "Water over both lanes at mile 1.4",
-    updated_at: T1630,
-  });
-  for (const rel of [...g.out("site_west_neighborhoods", "CONNECTED_BY")]) {
-    if (rel.props.road_id === "road_west_connector") {
-      Object.assign(rel.props, { status: "CLOSED", closed_at: T1630, closed_reason: "Water over both lanes" });
+  for (const [label, nodes] of Object.entries(g.nodesByLabel)) {
+    if (!ALLOWED_LABELS.has(label)) throw new Error(`Invalid label: ${label}`);
+    await store.query(`
+      UNWIND $nodes AS n
+      MERGE (node:${label} {id: n.id})
+      SET node += n
+    `, { nodes });
+  }
+
+  const relGroups = {};
+  for (const [type, rels] of Object.entries(g.relsByType)) {
+    if (!ALLOWED_RELS.has(type)) throw new Error(`Invalid rel type: ${type}`);
+    for (const r of rels) {
+      const fromLabel = g.nodeLabels[r.from] || 'Node';
+      const toLabel = g.nodeLabels[r.to] || 'Node';
+      const key = `${fromLabel}|${toLabel}|${type}`;
+      if (!relGroups[key]) relGroups[key] = [];
+      relGroups[key].push({ from: r.from, to: r.to, props: r.props });
     }
   }
 
-  g.setProps("shelter_riverside", { occupied: 52, updated_at: T1630 });
-
-  supersedeFact(g, "fact_road_west_1400", "fact_road_west_1630", "CLOSED", T1630, "src_dot_1630", 0.94, T1630);
-  n(g, ["Evidence"], "ev_road_west_1630", {
-    quote: "DOT: West Connector closed. Standing water both lanes. Do not send buses.",
-    source_span: "road-board",
-    observed_at: T1630,
-    confidence: 0.94,
-    created_at: T1630,
-  });
-  r(g, "SUPPORTED_BY", "fact_road_west_1630", "ev_road_west_1630");
-  r(g, "FROM_SOURCE", "ev_road_west_1630", "src_dot_1630");
-  r(g, "ABOUT", "ev_road_west_1630", "road_west_connector");
-
-  supersedeFact(g, "fact_shelter_a_cots_1400", "fact_shelter_a_cots_1630", "8", T1630, "src_shelter_radio_1630", 0.93, T1630);
-  n(g, ["Evidence"], "ev_cots_1630", {
-    quote: "Riverside High: gym taking on seepage. 8 dry cots remain. Do not send additional overflow.",
-    source_span: "radio-log",
-    observed_at: T1630,
-    confidence: 0.93,
-    created_at: T1630,
-  });
-  r(g, "SUPPORTED_BY", "fact_shelter_a_cots_1630", "ev_cots_1630");
-  r(g, "FROM_SOURCE", "ev_cots_1630", "src_shelter_radio_1630");
-  r(g, "ABOUT", "ev_cots_1630", "shelter_riverside");
-
-  n(g, ["Episode"], "ep_change_1630", {
-    kind: "ROAD_CLOSURE",
-    text: "16:30: West Connector closed. Riverside High capacity superseded 42 → 8. Prior Shelter A plan is no longer valid.",
-    occurred_at: T1630,
-    recorded_at: T1630,
-    author_agent_id: "agent_ingestor",
-    session_id: "session_outgoing",
-    source_id: "src_dot_1630",
-    importance: 0.97,
-    synthetic: true,
-    created_at: T1630,
-  });
-  r(g, "RECORDED", "session_outgoing", "ep_change_1630");
-  r(g, "RECORDED", "agent_ingestor", "ep_change_1630");
-  r(g, "MENTIONS", "ep_change_1630", "fact_road_west_1630");
-  r(g, "MENTIONS", "ep_change_1630", "fact_shelter_a_cots_1630");
-  r(g, "OBSERVED", "ep_change_1630", "ev_road_west_1630");
+  for (const [key, rels] of Object.entries(relGroups)) {
+    const [fromLabel, toLabel, type] = key.split('|');
+    await store.query(`
+      UNWIND $rels AS r
+      MATCH (from:${fromLabel} {id: r.from})
+      MATCH (to:${toLabel} {id: r.to})
+      MERGE (from)-[rel:${type}]->(to)
+      SET rel += r.props
+    `, { rels });
+  }
 }
 
-export function confirmParksAuthority(g: PropertyGraph, at: string): void {
-  r(g, "HAS_AUTHORITY", "agency_parks", "zone_civic", { valid_from: at, valid_to: null, confidence: 0.97, source_id: "human_approver" });
-  n(g, ["Episode"], "ep_authority_confirm", {
-    kind: "AUTHORITY_CONFIRMED",
-    text: "Duty officer confirmed Parks & Arena Ops authority for Civic District sheltering.",
-    occurred_at: at,
-    recorded_at: at,
-    author_agent_id: "agent_coordinator",
-    importance: 0.88,
-    synthetic: true,
-    created_at: at,
-  });
-  r(g, "RECORDED", "agent_coordinator", "ep_authority_confirm");
+export async function injectChange1630(store: GraphStore): Promise<void> {
+  await store.query(`MATCH (r:Road {id: 'road_west_connector'}) SET r.status = 'CLOSED', r.closed_at = $t, r.closed_reason = 'Water over both lanes at mile 1.4', r.updated_at = $t`, { t: T1630 });
+  await store.query(`MATCH (:Site {id: 'site_west_neighborhoods'})-[rel:CONNECTED_BY {road_id: 'road_west_connector'}]->() SET rel.status = 'CLOSED', rel.closed_at = $t, rel.closed_reason = 'Water over both lanes'`, { t: T1630 });
+  await store.query(`MATCH (s:Shelter {id: 'shelter_riverside'}) SET s.occupied = 52, s.updated_at = $t`, { t: T1630 });
+  
+  await store.query(`MATCH (f:Fact {id: 'fact_road_west_1400'}) SET f.status = 'SUPERSEDED', f.valid_to = $t`, { t: T1630 });
+  await store.query(`MERGE (f:Fact {id: 'fact_road_west_1630'}) SET f += {subject_id: 'road_west_connector', predicate: 'status', object_value: 'CLOSED', value_type: 'STRING', valid_from: $t, valid_to: null, observed_at: $t, confidence: 0.94, status: 'VALID', source_id: 'src_dot_1630', created_at: $t, updated_at: $t}`, { t: T1630 });
+  await store.query(`MATCH (old:Fact {id: 'fact_road_west_1400'}), (new:Fact {id: 'fact_road_west_1630'}) MERGE (new)-[:SUPERSEDES]->(old)`);
+  await store.query(`MATCH (new:Fact {id: 'fact_road_west_1630'}), (subj {id: 'road_west_connector'}) MERGE (new)-[:ABOUT]->(subj)`);
+  await store.query(`MERGE (ev:Evidence {id: 'ev_road_west_1630'}) SET ev += {quote: 'DOT: West Connector closed. Standing water both lanes. Do not send buses.', source_span: 'road-board', observed_at: $t, confidence: 0.94, created_at: $t}`, { t: T1630 });
+  await store.query(`MATCH (f:Fact {id: 'fact_road_west_1630'}), (ev:Evidence {id: 'ev_road_west_1630'}) MERGE (f)-[:SUPPORTED_BY]->(ev)`);
+  await store.query(`MATCH (ev:Evidence {id: 'ev_road_west_1630'}), (src:Source {id: 'src_dot_1630'}) MERGE (ev)-[:FROM_SOURCE]->(src)`);
+  await store.query(`MATCH (ev:Evidence {id: 'ev_road_west_1630'}), (subj {id: 'road_west_connector'}) MERGE (ev)-[:ABOUT]->(subj)`);
+
+  await store.query(`MATCH (f:Fact {id: 'fact_shelter_a_cots_1400'}) SET f.status = 'SUPERSEDED', f.valid_to = $t`, { t: T1630 });
+  await store.query(`MERGE (f:Fact {id: 'fact_shelter_a_cots_1630'}) SET f += {subject_id: 'shelter_riverside', predicate: 'available_cots', object_value: '8', value_type: 'STRING', valid_from: $t, valid_to: null, observed_at: $t, confidence: 0.93, status: 'VALID', source_id: 'src_shelter_radio_1630', created_at: $t, updated_at: $t}`, { t: T1630 });
+  await store.query(`MATCH (old:Fact {id: 'fact_shelter_a_cots_1400'}), (new:Fact {id: 'fact_shelter_a_cots_1630'}) MERGE (new)-[:SUPERSEDES]->(old)`);
+  await store.query(`MATCH (new:Fact {id: 'fact_shelter_a_cots_1630'}), (subj {id: 'shelter_riverside'}) MERGE (new)-[:ABOUT]->(subj)`);
+  await store.query(`MERGE (ev:Evidence {id: 'ev_cots_1630'}) SET ev += {quote: 'Riverside High: gym taking on seepage. 8 dry cots remain. Do not send additional overflow.', source_span: 'radio-log', observed_at: $t, confidence: 0.93, created_at: $t}`, { t: T1630 });
+  await store.query(`MATCH (f:Fact {id: 'fact_shelter_a_cots_1630'}), (ev:Evidence {id: 'ev_cots_1630'}) MERGE (f)-[:SUPPORTED_BY]->(ev)`);
+  await store.query(`MATCH (ev:Evidence {id: 'ev_cots_1630'}), (src:Source {id: 'src_shelter_radio_1630'}) MERGE (ev)-[:FROM_SOURCE]->(src)`);
+  await store.query(`MATCH (ev:Evidence {id: 'ev_cots_1630'}), (subj {id: 'shelter_riverside'}) MERGE (ev)-[:ABOUT]->(subj)`);
+
+  await store.query(`MERGE (ep:Episode {id: 'ep_change_1630'}) SET ep += {kind: 'ROAD_CLOSURE', text: '16:30: West Connector closed. Riverside High capacity superseded 42 → 8. Prior Shelter A plan is no longer valid.', occurred_at: $t, recorded_at: $t, author_agent_id: 'agent_ingestor', session_id: 'session_outgoing', source_id: 'src_dot_1630', importance: 0.97, synthetic: true, created_at: $t}`, { t: T1630 });
+  await store.query(`MATCH (sess:Session {id: 'session_outgoing'}), (ep:Episode {id: 'ep_change_1630'}) MERGE (sess)-[:RECORDED]->(ep)`);
+  await store.query(`MATCH (ag:Agent {id: 'agent_ingestor'}), (ep:Episode {id: 'ep_change_1630'}) MERGE (ag)-[:RECORDED]->(ep)`);
+  await store.query(`MATCH (ep:Episode {id: 'ep_change_1630'}), (f:Fact {id: 'fact_road_west_1630'}) MERGE (ep)-[:MENTIONS]->(f)`);
+  await store.query(`MATCH (ep:Episode {id: 'ep_change_1630'}), (f:Fact {id: 'fact_shelter_a_cots_1630'}) MERGE (ep)-[:MENTIONS]->(f)`);
+  await store.query(`MATCH (ep:Episode {id: 'ep_change_1630'}), (ev:Evidence {id: 'ev_road_west_1630'}) MERGE (ep)-[:OBSERVED]->(ev)`);
 }
 
-export function acceptHandoff(g: PropertyGraph, at: string): void {
-  g.setProps("handoff_1755", { status: "ACCEPTED", accepted_at: at, accepted_by: "agent_incoming_watch" });
-  n(g, ["Session"], "session_incoming", {
-    agent_id: "agent_incoming_watch",
-    watch_id: "watch_flood_ops",
-    started_at: at,
-    status: "ACTIVE",
-    last_reference_time: at,
-    created_at: at,
-  });
-  r(g, "HAS_SESSION", "watch_flood_ops", "session_incoming");
-  r(g, "RUN_BY", "session_incoming", "agent_incoming_watch");
+export async function confirmParksAuthority(store: GraphStore, at: string): Promise<void> {
+  await store.query(`MATCH (a:Agency {id: 'agency_parks'}), (z:Zone {id: 'zone_civic'}) MERGE (a)-[r:HAS_AUTHORITY]->(z) SET r += {valid_from: $at, valid_to: null, confidence: 0.97, source_id: 'human_approver'}`, { at });
+  await store.query(`MERGE (ep:Episode {id: 'ep_authority_confirm'}) SET ep += {kind: 'AUTHORITY_CONFIRMED', text: 'Duty officer confirmed Parks & Arena Ops authority for Civic District sheltering.', occurred_at: $at, recorded_at: $at, author_agent_id: 'agent_coordinator', importance: 0.88, synthetic: true, created_at: $at}`, { at });
+  await store.query(`MATCH (ag:Agent {id: 'agent_coordinator'}), (ep:Episode {id: 'ep_authority_confirm'}) MERGE (ag)-[:RECORDED]->(ep)`);
 }
 
-export function killOutgoing(g: PropertyGraph, at: string): void {
-  g.setProps("agent_outgoing_watch", { status: "OFFLINE" });
-  g.setProps("session_outgoing", { status: "INTERRUPTED", ended_at: at });
+export async function acceptHandoff(store: GraphStore, at: string): Promise<void> {
+  await store.query(`MATCH (h:Handoff {id: 'handoff_1755'}) SET h.status = 'ACCEPTED', h.accepted_at = $at, h.accepted_by = 'agent_incoming_watch'`, { at });
+  await store.query(`MERGE (s:Session {id: 'session_incoming'}) SET s += {agent_id: 'agent_incoming_watch', watch_id: 'watch_flood_ops', started_at: $at, status: 'ACTIVE', last_reference_time: $at, created_at: $at}`, { at });
+  await store.query(`MATCH (w:Watch {id: 'watch_flood_ops'}), (s:Session {id: 'session_incoming'}) MERGE (w)-[:HAS_SESSION]->(s)`);
+  await store.query(`MATCH (s:Session {id: 'session_incoming'}), (ag:Agent {id: 'agent_incoming_watch'}) MERGE (s)-[:RUN_BY]->(ag)`);
 }
 
-export function assignOpenLoop(g: PropertyGraph, agentId: string, at: string): void {
-  for (const rel of g.in("ol_west_overflow", "OWNS")) g.deleteRel(rel.id);
-  r(g, "OWNS", agentId, "ol_west_overflow", { assigned_at: at, assigned_by: "agent_coordinator" });
-  g.setProps("ol_west_overflow", { status: "ASSIGNED", updated_at: at });
+export async function killOutgoing(store: GraphStore, at: string): Promise<void> {
+  await store.query(`MATCH (a:Agent {id: 'agent_outgoing_watch'}) SET a.status = 'OFFLINE'`);
+  await store.query(`MATCH (s:Session {id: 'session_outgoing'}) SET s.status = 'INTERRUPTED', s.ended_at = $at`, { at });
 }
 
-export function writeProposal(
-  g: PropertyGraph,
+export async function assignOpenLoop(store: GraphStore, agentId: string, at: string): Promise<void> {
+  await store.query(`MATCH ()-[r:OWNS]->(o:OpenLoop {id: 'ol_west_overflow'}) DELETE r`);
+  await store.query(`MATCH (a:Agent {id: $agentId}), (o:OpenLoop {id: 'ol_west_overflow'}) MERGE (a)-[r:OWNS]->(o) SET r += {assigned_at: $at, assigned_by: 'agent_coordinator'}`, { agentId, at });
+  await store.query(`MATCH (o:OpenLoop {id: 'ol_west_overflow'}) SET o.status = 'ASSIGNED', o.updated_at = $at`, { at });
+}
+
+export async function writeProposal(
+  store: GraphStore,
   input: {
     decisionId: string;
     action: string;
@@ -695,74 +704,41 @@ export function writeProposal(
     evidenceIds: string[];
     shelterId: string;
     zoneId: string;
-  },
-): void {
-  n(g, ["DecisionTrace"], "trace_1800", {
-    question: "Which accessible shelter can receive West Basin households now?",
-    reference_time: input.referenceTime,
-    started_at: input.referenceTime,
-    status: "RUNNING",
-    planner_agent_id: "agent_planner",
-    assumptions_json: "[]",
-    created_at: input.referenceTime,
-  });
-  n(g, ["Decision"], input.decisionId, {
-    action_kind: "TRANSFER_TO_SHELTER",
-    status: "PROPOSED",
-    rationale: input.rationale,
-    reference_time: input.referenceTime,
-    proposed_at: input.referenceTime,
-    confidence: input.confidence,
-    created_by: "agent_planner",
-    created_at: input.referenceTime,
-    updated_at: input.referenceTime,
-    action: input.action,
-    shelter_id: input.shelterId,
-  });
-  r(g, "PROPOSED", "trace_1800", input.decisionId);
-  r(g, "FOR_INCIDENT", input.decisionId, "inc_cedar_flood");
-  r(g, "FOR_ZONE", input.decisionId, input.zoneId);
-  r(g, "MADE", "agent_planner", input.decisionId);
-  r(g, "REQUIRES_APPROVAL_FROM", input.decisionId, "human_approver");
+  }
+): Promise<void> {
+  await store.query(`MERGE (d:DecisionTrace {id: 'trace_1800'}) SET d += {question: 'Which accessible shelter can receive West Basin households now?', reference_time: $referenceTime, started_at: $referenceTime, status: 'RUNNING', planner_agent_id: 'agent_planner', assumptions_json: '[]', created_at: $referenceTime}`, { referenceTime: input.referenceTime });
+  await store.query(`MERGE (d:Decision {id: $decisionId}) SET d += {action_kind: 'TRANSFER_TO_SHELTER', status: 'PROPOSED', rationale: $rationale, reference_time: $referenceTime, proposed_at: $referenceTime, confidence: $confidence, created_by: 'agent_planner', created_at: $referenceTime, updated_at: $referenceTime, action: $action, shelter_id: $shelterId}`, input);
+  await store.query(`MATCH (t:DecisionTrace {id: 'trace_1800'}), (d:Decision {id: $decisionId}) MERGE (t)-[:PROPOSED]->(d)`, { decisionId: input.decisionId });
+  await store.query(`MATCH (d:Decision {id: $decisionId}), (i:Incident {id: 'inc_cedar_flood'}) MERGE (d)-[:FOR_INCIDENT]->(i)`, { decisionId: input.decisionId });
+  await store.query(`MATCH (d:Decision {id: $decisionId}), (z:Zone {id: $zoneId}) MERGE (d)-[:FOR_ZONE]->(z)`, { decisionId: input.decisionId, zoneId: input.zoneId });
+  await store.query(`MATCH (a:Agent {id: 'agent_planner'}), (d:Decision {id: $decisionId}) MERGE (a)-[:MADE]->(d)`, { decisionId: input.decisionId });
+  await store.query(`MATCH (d:Decision {id: $decisionId}), (h:Human {id: 'human_approver'}) MERGE (d)-[:REQUIRES_APPROVAL_FROM]->(h)`, { decisionId: input.decisionId });
   for (const fid of input.factIds) {
-    if (g.get(fid)) r(g, "USES_FACT", input.decisionId, fid);
+    await store.query(`MATCH (d:Decision {id: $decisionId}), (f:Fact {id: $fid}) MERGE (d)-[:USES_FACT]->(f)`, { decisionId: input.decisionId, fid });
   }
   for (const eid of input.evidenceIds) {
-    if (g.get(eid)) r(g, "SUPPORTED_BY", input.decisionId, eid);
+    await store.query(`MATCH (d:Decision {id: $decisionId}), (e:Evidence {id: $eid}) MERGE (d)-[:SUPPORTED_BY]->(e)`, { decisionId: input.decisionId, eid });
   }
 }
 
-export function setDecisionStatus(
-  g: PropertyGraph,
+export async function setDecisionStatus(
+  store: GraphStore,
   decisionId: string,
   status: string,
   at: string,
-  extra: Record<string, string | number | boolean | null> = {},
-): void {
-  g.setProps(decisionId, { status, updated_at: at, ...extra });
+  extra: Record<string, any> = {}
+): Promise<void> {
+  await store.query(`MATCH (d:Decision {id: $decisionId}) SET d.status = $status, d.updated_at = $at`, { decisionId, status, at });
+  for (const [k, v] of Object.entries(extra)) {
+    await store.query(`MATCH (d:Decision {id: $decisionId}) SET d.${k} = $v`, { decisionId, v });
+  }
 }
 
-export function recordOutcome(g: PropertyGraph, decisionId: string, at: string, notes: string): void {
-  n(g, ["Outcome"], "out_civic_sim", {
-    status: "EXECUTED_IN_SIMULATION",
-    metric_name: "households_assigned",
-    metric_value: 6,
-    observed_at: at,
-    notes,
-    created_at: at,
-  });
-  r(g, "LED_TO", decisionId, "out_civic_sim");
-  g.setProps("ol_west_overflow", { status: "CLOSED", updated_at: at });
-  n(g, ["Episode"], "ep_outcome", {
-    kind: "OPEN_LOOP_CLOSED",
-    text: notes,
-    occurred_at: at,
-    recorded_at: at,
-    author_agent_id: "agent_coordinator",
-    importance: 0.8,
-    synthetic: true,
-    created_at: at,
-  });
-  r(g, "RECORDED_OUTCOME", "ep_outcome", "out_civic_sim");
-  r(g, "RECORDED", "agent_coordinator", "ep_outcome");
+export async function recordOutcome(store: GraphStore, decisionId: string, at: string, notes: string): Promise<void> {
+  await store.query(`MERGE (o:Outcome {id: 'out_civic_sim'}) SET o += {status: 'EXECUTED_IN_SIMULATION', metric_name: 'households_assigned', metric_value: 6, observed_at: $at, notes: $notes, created_at: $at}`, { at, notes });
+  await store.query(`MATCH (d:Decision {id: $decisionId}), (o:Outcome {id: 'out_civic_sim'}) MERGE (d)-[:LED_TO]->(o)`, { decisionId });
+  await store.query(`MATCH (o:OpenLoop {id: 'ol_west_overflow'}) SET o.status = 'CLOSED', o.updated_at = $at`, { at });
+  await store.query(`MERGE (ep:Episode {id: 'ep_outcome'}) SET ep += {kind: 'OPEN_LOOP_CLOSED', text: $notes, occurred_at: $at, recorded_at: $at, author_agent_id: 'agent_coordinator', importance: 0.8, synthetic: true, created_at: $at}`, { at, notes });
+  await store.query(`MATCH (ep:Episode {id: 'ep_outcome'}), (o:Outcome {id: 'out_civic_sim'}) MERGE (ep)-[:RECORDED_OUTCOME]->(o)`);
+  await store.query(`MATCH (a:Agent {id: 'agent_coordinator'}), (ep:Episode {id: 'ep_outcome'}) MERGE (a)-[:RECORDED]->(ep)`);
 }

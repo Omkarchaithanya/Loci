@@ -12,7 +12,7 @@ import {
 import { planShelterTransfer } from "../agents/planner.ts";
 import { reviewProposal } from "../agents/reviewer.ts";
 import type { AgentProposal, ReviewResult } from "../agents/contract.ts";
-import type { PropertyGraph } from "../graph/engine.ts";
+import type { GraphStore } from "../graph/store.ts";
 import { T14, T1630, T18 } from "../graph/types.ts";
 
 export type DemoFlags = {
@@ -41,22 +41,25 @@ export const INITIAL_FLAGS: DemoFlags = {
   outcomeRecorded: false,
 };
 
-export function buildWorld(flags: DemoFlags): PropertyGraph {
-  const g = seedBaseline();
-  if (flags.injectedChange) injectChange1630(g);
+import { getGraphStore } from "../graph/store.ts";
+
+export async function buildWorld(flags: DemoFlags): Promise<GraphStore> {
+  const store = await getGraphStore();
+  await seedBaseline(store);
+  if (flags.injectedChange) await injectChange1630(store);
   const t = flags.referenceTime;
-  if (flags.handoffAccepted) acceptHandoff(g, t);
-  if (flags.outgoingKilled) killOutgoing(g, t);
-  if (flags.loopOwner) assignOpenLoop(g, flags.loopOwner, t);
-  if (flags.parksAuthority) confirmParksAuthority(g, t);
+  if (flags.handoffAccepted) await acceptHandoff(store, t);
+  if (flags.outgoingKilled) await killOutgoing(store, t);
+  if (flags.loopOwner) await assignOpenLoop(store, flags.loopOwner, t);
+  if (flags.parksAuthority) await confirmParksAuthority(store, t);
 
   if (flags.proposalWritten || flags.decisionStatus !== "NONE") {
-    const proposal = planShelterTransfer(g, {
+    const proposal = await planShelterTransfer(store, {
       hazardId: "hazard_river_rise",
       referenceTime: t,
       decisionId: "d_incoming_plan",
     });
-    writeProposal(g, {
+    await writeProposal(store, {
       decisionId: proposal.decision_id,
       action: proposal.action,
       rationale: proposal.planner_notes,
@@ -68,41 +71,41 @@ export function buildWorld(flags: DemoFlags): PropertyGraph {
       zoneId: "zone_west_basin",
     });
     if (flags.decisionStatus === "IN_REVIEW") {
-      setDecisionStatus(g, "d_incoming_plan", "IN_REVIEW", t);
+      await setDecisionStatus(store, "d_incoming_plan", "IN_REVIEW", t);
     }
     if (flags.decisionStatus === "APPROVED") {
-      setDecisionStatus(g, "d_incoming_plan", "APPROVED", t, {
+      await setDecisionStatus(store, "d_incoming_plan", "APPROVED", t, {
         approved_at: t,
         approved_by: "human_approver",
       });
     }
     if (flags.decisionStatus === "REJECTED") {
-      setDecisionStatus(g, "d_incoming_plan", "REJECTED", t, {
+      await setDecisionStatus(store, "d_incoming_plan", "REJECTED", t, {
         rejected_at: t,
         rejected_by: "human_approver",
         rejection_reason: flags.rejectionReason || "Rejected by duty officer",
       });
     }
     if (flags.outcomeRecorded) {
-      recordOutcome(g, "d_incoming_plan", t, "Simulation: West Basin households staged to Civic Arena. No field dispatch.");
+      await recordOutcome(store, "d_incoming_plan", t, "Simulation: West Basin households staged to Civic Arena. No field dispatch.");
     }
   }
-  return g;
+  return store;
 }
 
-export function planNow(flags: DemoFlags): AgentProposal {
-  const g = buildWorld(flags);
-  return planShelterTransfer(g, {
+export async function planNow(flags: DemoFlags): Promise<AgentProposal> {
+  const store = await buildWorld(flags);
+  return await planShelterTransfer(store, {
     hazardId: "hazard_river_rise",
     referenceTime: flags.referenceTime,
     decisionId: "d_incoming_plan",
   });
 }
 
-export function reviewNow(flags: DemoFlags, proposal?: AgentProposal): ReviewResult {
-  const g = buildWorld(flags);
-  const p = proposal ?? planNow(flags);
-  return reviewProposal(g, p);
+export async function reviewNow(flags: DemoFlags, proposal?: AgentProposal): Promise<ReviewResult> {
+  const store = await buildWorld(flags);
+  const p = proposal ?? await planNow(flags);
+  return await reviewProposal(store, p);
 }
 
 export { T14, T1630, T18 };

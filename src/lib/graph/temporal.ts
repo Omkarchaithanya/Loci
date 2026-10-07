@@ -1,39 +1,50 @@
-import type { PropertyGraph } from "./engine.ts";
+import type { GraphStore } from "./store.ts";
 import type { ChangeKind, FactChange, FactRecord } from "./types.ts";
 import { isValidAt } from "./types.ts";
 
-export function factRecord(g: PropertyGraph, factId: string): FactRecord | null {
-  const f = g.get(factId);
-  if (!f || !f.labels.includes("Fact")) return null;
-  const about = g.out(factId, "ABOUT")[0];
-  const subject = about ? g.get(about.to) : undefined;
-  const superseder = g.in(factId, "SUPERSEDES")[0];
+export async function factRecord(store: GraphStore, factId: string): Promise<FactRecord | null> {
+  const res = await store.query("MATCH (f:Fact {id: $factId}) OPTIONAL MATCH (f)-[:ABOUT]->(subj) OPTIONAL MATCH (f)<-[:SUPERSEDES]-(sup) RETURN f, subj, sup", { factId });
+  if (!res.data.length) return null;
+  const { f, subj, sup } = res.data[0];
   return {
-    id: f.id,
-    subjectId: String(f.props.subject_id ?? subject?.id ?? ""),
-    subjectLabels: subject?.labels ?? [],
-    predicate: String(f.props.predicate ?? ""),
-    objectValue: String(f.props.object_value ?? ""),
-    validFrom: String(f.props.valid_from ?? ""),
-    validTo: f.props.valid_to == null ? null : String(f.props.valid_to),
-    observedAt: String(f.props.observed_at ?? ""),
-    confidence: Number(f.props.confidence ?? 0),
-    status: String(f.props.status ?? ""),
-    sourceId: String(f.props.source_id ?? ""),
-    supersededBy: superseder?.from,
+    id: f.properties.id,
+    subjectId: String(f.properties.subject_id ?? subj?.properties?.id ?? ""),
+    subjectLabels: subj?.labels ?? [],
+    predicate: String(f.properties.predicate ?? ""),
+    objectValue: String(f.properties.object_value ?? ""),
+    validFrom: String(f.properties.valid_from ?? ""),
+    validTo: f.properties.valid_to == null ? null : String(f.properties.valid_to),
+    observedAt: String(f.properties.observed_at ?? ""),
+    confidence: Number(f.properties.confidence ?? 0),
+    status: String(f.properties.status ?? ""),
+    sourceId: String(f.properties.source_id ?? ""),
+    supersededBy: sup?.properties?.id,
   };
 }
 
-export function factsAtTime(g: PropertyGraph, t: string, statuses: string[] = ["VALID", "SUPERSEDED"]): FactRecord[] {
+export async function factsAtTime(store: GraphStore, t: string, statuses: string[] = ["VALID", "SUPERSEDED"]): Promise<FactRecord[]> {
+  const res = await store.query("MATCH (f:Fact) OPTIONAL MATCH (f)-[:ABOUT]->(subj) OPTIONAL MATCH (f)<-[:SUPERSEDES]-(sup) RETURN f, subj, sup");
   const out: FactRecord[] = [];
-  for (const f of g.nodesByLabel("Fact")) {
-    const rec = factRecord(g, f.id);
-    if (!rec) continue;
+  for (const row of res.data) {
+    const { f, subj, sup } = row;
+    const rec = {
+      id: f.properties.id,
+      subjectId: String(f.properties.subject_id ?? subj?.properties?.id ?? ""),
+      subjectLabels: subj?.labels ?? [],
+      predicate: String(f.properties.predicate ?? ""),
+      objectValue: String(f.properties.object_value ?? ""),
+      validFrom: String(f.properties.valid_from ?? ""),
+      validTo: f.properties.valid_to == null ? null : String(f.properties.valid_to),
+      observedAt: String(f.properties.observed_at ?? ""),
+      confidence: Number(f.properties.confidence ?? 0),
+      status: String(f.properties.status ?? ""),
+      sourceId: String(f.properties.source_id ?? ""),
+      supersededBy: sup?.properties?.id,
+    };
     if (!statuses.includes(rec.status) && rec.status !== "VALID") {
       if (!statuses.includes(rec.status)) continue;
     }
     if (!isValidAt(rec.validFrom, rec.validTo, t)) continue;
-    // Historical reconstruction includes SUPERSEDED facts whose interval still covers t.
     if (rec.status === "SUPERSEDED" && !statuses.includes("SUPERSEDED")) continue;
     if (rec.status === "VALID" && !statuses.includes("VALID")) continue;
     out.push(rec);
@@ -41,15 +52,29 @@ export function factsAtTime(g: PropertyGraph, t: string, statuses: string[] = ["
   return out.sort((a, b) => a.subjectId.localeCompare(b.subjectId) || a.predicate.localeCompare(b.predicate));
 }
 
-export function currentFacts(g: PropertyGraph, t: string): FactRecord[] {
-  return factsAtTime(g, t, ["VALID"]).filter((f) => f.status === "VALID");
+export async function currentFacts(store: GraphStore, t: string): Promise<FactRecord[]> {
+  return (await factsAtTime(store, t, ["VALID"])).filter((f) => f.status === "VALID");
 }
 
-export function diffFacts(g: PropertyGraph, earlier: string, later: string): FactChange[] {
+export async function diffFacts(store: GraphStore, earlier: string, later: string): Promise<FactChange[]> {
+  const res = await store.query("MATCH (f:Fact) OPTIONAL MATCH (f)-[:ABOUT]->(subj) OPTIONAL MATCH (f)<-[:SUPERSEDES]-(sup) RETURN f, subj, sup");
   const changes: FactChange[] = [];
-  for (const f of g.nodesByLabel("Fact")) {
-    const rec = factRecord(g, f.id);
-    if (!rec) continue;
+  for (const row of res.data) {
+    const { f, subj, sup } = row;
+    const rec = {
+      id: f.properties.id,
+      subjectId: String(f.properties.subject_id ?? subj?.properties?.id ?? ""),
+      subjectLabels: subj?.labels ?? [],
+      predicate: String(f.properties.predicate ?? ""),
+      objectValue: String(f.properties.object_value ?? ""),
+      validFrom: String(f.properties.valid_from ?? ""),
+      validTo: f.properties.valid_to == null ? null : String(f.properties.valid_to),
+      observedAt: String(f.properties.observed_at ?? ""),
+      confidence: Number(f.properties.confidence ?? 0),
+      status: String(f.properties.status ?? ""),
+      sourceId: String(f.properties.source_id ?? ""),
+      supersededBy: sup?.properties?.id,
+    };
     const coversLater = isValidAt(rec.validFrom, rec.validTo, later) || rec.validFrom <= later;
     const overlapsWindow = rec.validFrom <= later && (rec.validTo == null || rec.validTo > earlier);
     if (!overlapsWindow && !coversLater) continue;
@@ -67,8 +92,8 @@ export function diffFacts(g: PropertyGraph, earlier: string, later: string): Fac
   return changes.sort((a, b) => a.subjectId.localeCompare(b.subjectId) || a.predicate.localeCompare(b.predicate));
 }
 
-export function supersedeFact(
-  g: PropertyGraph,
+export async function supersedeFact(
+  store: GraphStore,
   oldFactId: string,
   newId: string,
   newValue: string,
@@ -76,53 +101,33 @@ export function supersedeFact(
   sourceId: string,
   confidence: number,
   observedAt: string,
-): string {
-  const old = g.must(oldFactId);
-  const about = g.out(oldFactId, "ABOUT")[0];
-  if (!about) throw new Error(`Fact ${oldFactId} has no ABOUT`);
-  g.mergeNode(
-    ["Fact"],
-    newId,
-    {
-      id: newId,
-      subject_id: String(old.props.subject_id),
-      predicate: String(old.props.predicate),
-      object_value: newValue,
-      value_type: String(old.props.value_type ?? "STRING"),
-      valid_from: validFrom,
-      valid_to: null,
-      observed_at: observedAt,
-      confidence,
-      status: "VALID",
-      source_id: sourceId,
-      created_at: observedAt,
-      updated_at: observedAt,
-    },
-  );
-  g.mergeRel("ABOUT", newId, about.to);
-  g.mergeRel("SUPERSEDES", newId, oldFactId);
-  const support = g.out(oldFactId, "SUPPORTED_BY")[0];
-  if (support) g.mergeRel("SUPPORTED_BY", newId, support.to);
-  g.setProps(oldFactId, {
-    valid_to: validFrom,
-    status: "SUPERSEDED",
-    updated_at: observedAt,
+): Promise<string> {
+  const oldRes = await store.query("MATCH (f:Fact {id: $oldFactId})-[:ABOUT]->(subj) OPTIONAL MATCH (f)-[:SUPPORTED_BY]->(sup) RETURN f, subj, sup LIMIT 1", { oldFactId });
+  if (!oldRes.data.length) throw new Error(`Fact ${oldFactId} has no ABOUT`);
+  const { f: old, subj: about, sup: support } = oldRes.data[0];
+  
+  await store.query(`MERGE (new:Fact {id: $newId}) SET new += {subject_id: $subjectId, predicate: $predicate, object_value: $newValue, value_type: $valueType, valid_from: $validFrom, valid_to: null, observed_at: $observedAt, confidence: $confidence, status: 'VALID', source_id: $sourceId, created_at: $observedAt, updated_at: $observedAt}`, {
+    newId, subjectId: String(old.properties.subject_id), predicate: String(old.properties.predicate), newValue, valueType: String(old.properties.value_type ?? "STRING"), validFrom, observedAt, confidence, sourceId
   });
+  await store.query("MATCH (new:Fact {id: $newId}), (subj {id: $aboutId}) MERGE (new)-[:ABOUT]->(subj)", { newId, aboutId: about.properties.id });
+  await store.query("MATCH (new:Fact {id: $newId}), (old:Fact {id: $oldFactId}) MERGE (new)-[:SUPERSEDES]->(old)", { newId, oldFactId });
+  if (support) {
+    await store.query("MATCH (new:Fact {id: $newId}), (sup {id: $supId}) MERGE (new)-[:SUPPORTED_BY]->(sup)", { newId, supId: support.properties.id });
+  }
+  await store.query("MATCH (old:Fact {id: $oldFactId}) SET old.valid_to = $validFrom, old.status = 'SUPERSEDED', old.updated_at = $observedAt", { oldFactId, validFrom, observedAt });
   return newId;
 }
 
-export function evidenceForFact(g: PropertyGraph, factId: string): { evidenceId: string; quote: string; sourceId: string; url: string }[] {
-  const out: { evidenceId: string; quote: string; sourceId: string; url: string }[] = [];
-  for (const rel of g.out(factId, "SUPPORTED_BY")) {
-    const e = g.get(rel.to);
-    if (!e) continue;
-    const srcRel = g.out(e.id, "FROM_SOURCE")[0];
-    const src = srcRel ? g.get(srcRel.to) : undefined;
+export async function evidenceForFact(store: GraphStore, factId: string): Promise<{ evidenceId: string; quote: string; sourceId: string; url: string }[]> {
+  const res = await store.query("MATCH (f:Fact {id: $factId})-[:SUPPORTED_BY]->(e:Evidence) OPTIONAL MATCH (e)-[:FROM_SOURCE]->(src:Source) RETURN e, src", { factId });
+  const out = [];
+  for (const row of res.data) {
+    const { e, src } = row;
     out.push({
-      evidenceId: e.id,
-      quote: String(e.props.quote ?? ""),
-      sourceId: src?.id ?? String(e.props.source_id ?? ""),
-      url: String(src?.props.url ?? ""),
+      evidenceId: e.properties.id,
+      quote: String(e.properties.quote ?? ""),
+      sourceId: src?.properties?.id ?? String(e.properties.source_id ?? ""),
+      url: String(src?.properties?.url ?? ""),
     });
   }
   return out;

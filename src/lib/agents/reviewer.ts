@@ -1,8 +1,8 @@
 import { factRecord } from "../graph/temporal.ts";
-import type { PropertyGraph } from "../graph/engine.ts";
+import type { GraphStore } from "../graph/store.ts";
 import type { AgentProposal, ReviewResult, ReviewState } from "./contract.ts";
 
-export function reviewProposal(g: PropertyGraph, proposal: AgentProposal): ReviewResult {
+export async function reviewProposal(store: GraphStore, proposal: AgentProposal): Promise<ReviewResult> {
   const checks: ReviewResult["checks"] = [];
   const blocking: string[] = [];
 
@@ -16,7 +16,7 @@ export function reviewProposal(g: PropertyGraph, proposal: AgentProposal): Revie
   let superseded = false;
   let expired = false;
   for (const fid of proposal.fact_ids) {
-    const rec = factRecord(g, fid);
+    const rec = await factRecord(store, fid);
     if (!rec) continue;
     if (rec.status === "SUPERSEDED") superseded = true;
     if (rec.validTo && rec.validTo <= proposal.reference_time) expired = true;
