@@ -1,6 +1,6 @@
 <div align="center">
   <img src="https://raw.githubusercontent.com/FalkorDB/falkordb/master/logo.png" alt="FalkorDB" width="120" />
-  <h1>WatchChange Mesh 🌐</h1>
+  <h1>Loci 🌐</h1>
   <p><strong>Agent Memory & Coordination for Disaster Decision Support</strong></p>
   
   [![FalkorDB](https://img.shields.io/badge/FalkorDB-v4.20.4-ff69b4.svg?style=for-the-badge&logo=redis)](https://falkordb.com/)
@@ -11,7 +11,7 @@
 
 <br/>
 
-> **WatchChange Mesh** is a human-approved disaster-coordination decision support system. It gives AI Agents a persistent, bi-temporal memory graph. An incoming watch agent can reconstruct exactly what the world looked like at 14:00, see precisely what changed by 18:00, and propose a highly constrained, multi-hop shelter plan based on live data.
+> **Loci** is a human-approved disaster-coordination decision support system. It gives AI Agents a persistent, bi-temporal memory graph. An incoming watch agent can reconstruct exactly what the world looked like at 14:00, see precisely what changed by 18:00, and propose a highly constrained, multi-hop shelter plan based on live data.
 
 ---
 
@@ -72,6 +72,61 @@ npm run dev
 4. **Tap 18:00 Incoming.** Check **Handoff**: The new agent sees the unowned overflow loop and the North School failure.
 5. **Re-run the planner.** Civic Arena ranks first but is **blocked** on missing Parks authority constraints.
 6. **Confirm authority & Approve.** As the human duty officer, approve the plan. Status is written back to the graph as `APPROVED`.
+
+---
+
+## 🔌 MCP Server (Model Context Protocol)
+
+Loci exposes a JSON-schema’d, parameterized MCP server for your AI agents (Claude, Cursor, etc.). The planner is exposed via safe, parameterized functions rather than raw Cypher string-concatenation.
+
+### Configuration (Cursor/Claude)
+Add this to your MCP config:
+```json
+{
+  "mcpServers": {
+    "loci-planner": {
+      "command": "node",
+      "args": ["--experimental-strip-types", "src/mcp/server.ts"]
+    }
+  }
+}
+```
+
+### Safety Rules
+- **Parameterized Queries:** All queries strictly use parameters (`$id`) to prevent Cypher injection.
+- **Read-Only by Default:** `get_facts_at_time`, `get_failed_attempts`, and `plan_shelter_transfer` use read-only transactions (`roQuery`).
+- **Dry-Run by Default:** `approve_decision` requires explicit `confirm: true` and a human `officer_id` to actually persist changes to the graph.
+
+### Example Tool Calls
+
+**1. Time-Travel Facts:**
+```json
+{
+  "name": "get_facts_at_time",
+  "arguments": { "timestamp": "2026-10-15T14:00:00Z" }
+}
+```
+**2. Failed Attempts:**
+```json
+{
+  "name": "get_failed_attempts",
+  "arguments": { "shelter_id": "shelter_north_school" }
+}
+```
+**3. Safe Graph Planning:**
+```json
+{
+  "name": "plan_shelter_transfer",
+  "arguments": { "hazard_id": "hazard_river_rise", "timestamp": "2026-10-15T18:00:00Z" }
+}
+```
+**4. Human Approval (Dry-Run):**
+```json
+{
+  "name": "approve_decision",
+  "arguments": { "plan_id": "d_incoming_plan", "status": "APPROVED" }
+}
+```
 
 ---
 

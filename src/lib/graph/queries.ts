@@ -286,16 +286,22 @@ export async function evidencePacket(store: GraphStore, factIds: string[]) {
 }
 
 export async function graphHealth(store: GraphStore) {
-  const nRes = await store.roQuery("MATCH (n) RETURN count(n) as count");
-  const rRes = await store.roQuery("MATCH ()-[r]->() RETURN count(r) as count");
-  const nodes = Number(nRes.data[0]['count(n)']);
-  const rels = Number(rRes.data[0]['count(r)']);
-  return {
-    ready: nodes > 0,
-    graph: "watchchange_flood_demo",
-    nodes,
-    relationships: rels,
-  };
+  try {
+    const nRes = await store.roQuery("MATCH (n) RETURN count(n) as count");
+    const rRes = await store.roQuery("MATCH ()-[r]->() RETURN count(r) as count");
+    const nodes = Number(nRes.data[0]['count(n)']);
+    const rels = Number(rRes.data[0]['count(r)']);
+    return {
+      ready: nodes > 0,
+      graph: store.name || "watchchange_flood_demo",
+      nodes,
+      relationships: rels,
+      latencyMs: (nRes as any).totalTimeMs || (nRes as any).serverTimeMs || 0
+    };
+  } catch (e: any) {
+    if (e.message === "NOT_CONNECTED") throw e;
+    return { ready: false, graph: store.name || "unknown", nodes: 0, relationships: 0, latencyMs: 0 };
+  }
 }
 
 export async function episodesSince(store: GraphStore, since: string) {

@@ -37,7 +37,7 @@ export const briefIncomingWatch = createServerFn({ method: "POST" })
           {
             role: "system",
             content:
-              "You are the Incoming Watch briefing officer for WatchChange Mesh. Use ONLY the supplied graph packet. Six short operational sentences. No dispatch orders. Never invent node IDs, numbers, or sources. Label the scenario synthetic.",
+              "You are the Incoming Watch briefing officer for Loci. Use ONLY the supplied graph packet. Six short operational sentences. No dispatch orders. Never invent node IDs, numbers, or sources. Label the scenario synthetic.",
           },
           {
             role: "user",

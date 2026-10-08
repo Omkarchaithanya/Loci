@@ -1,4 +1,4 @@
-# TODO — WatchChange Mesh
+# TODO — Loci
 
 Outcome-based tasks. A task is done only with a passing test or a rendered, verified UI state.
 

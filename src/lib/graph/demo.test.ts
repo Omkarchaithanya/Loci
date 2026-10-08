@@ -1,4 +1,5 @@
 process.env.FALKORDB_GRAPH = "watchchange_test";
+process.env.FALKORDB_URL = "redis://localhost:6379";
 import assert from "node:assert/strict";
 import { describe, it, beforeEach } from "node:test";
 import { buildWorld, INITIAL_FLAGS, planNow, reviewNow, T14, T1630, T18 } from "../demo/world.ts";
@@ -6,7 +7,7 @@ import { getGraphStore } from "./store.ts";
 import { reconstructFacts, unownedOpenLoops, failedAttemptsFor, supersessionChain, candidatePlans } from "./queries.ts";
 import { seedBaseline } from "./seed.ts";
 
-describe("WatchChange Mesh winning demo", () => {
+describe("Loci winning demo", () => {
   beforeEach(async () => {
     const store = await getGraphStore();
     await store.query("MATCH (n) DETACH DELETE n");

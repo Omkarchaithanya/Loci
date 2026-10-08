@@ -64,7 +64,17 @@ let defaultStore: GraphStore | null = null;
 
 export async function getGraphStore(): Promise<GraphStore> {
   if (!defaultStore) {
-    const url = process.env.FALKORDB_URL || "redis://localhost:6379";
+    if (process.env.DEV_KERNEL === "1") {
+      const { FalkorEngine } = await import("./engine.ts");
+      defaultStore = new FalkorEngine();
+      return defaultStore;
+    }
+
+    const url = process.env.FALKORDB_URL;
+    if (!url) {
+      throw new Error("NOT_CONNECTED");
+    }
+
     const graphName = process.env.FALKORDB_GRAPH || "watchchange_flood_demo";
     defaultStore = await FalkorDBStore.connect(url, graphName);
     

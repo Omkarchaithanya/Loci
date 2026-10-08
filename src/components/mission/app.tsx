@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useEffect, useState } from "react";
 import { Mark } from "@/components/mission/logo";
 import {
   GraphPanel,
@@ -18,6 +18,39 @@ import { cn } from "@/lib/utils";
 
 function clockLabel(iso: string) {
   return iso.slice(11, 16) + "Z";
+}
+
+function FalkorBadge({ onStatusChange }: { onStatusChange: (status: any) => void }) {
+  const [health, setHealth] = useState<any>(null);
+
+  useEffect(() => {
+    let mounted = true;
+    const fetchHealth = async () => {
+      try {
+        const res = await fetch("/api/health");
+        const data = await res.json();
+        if (mounted) {
+          setHealth(data);
+          onStatusChange(data);
+        }
+      } catch (e) {
+        if (mounted) {
+          setHealth({ ok: false, error: "NOT_CONNECTED" });
+          onStatusChange({ ok: false, error: "NOT_CONNECTED" });
+        }
+      }
+    };
+    fetchHealth();
+    const int = setInterval(fetchHealth, 5000);
+    return () => { mounted = false; clearInterval(int); };
+  }, [onStatusChange]);
+
+  if (!health) return <Badge tone="mute">Connecting to FalkorDB...</Badge>;
+  if (!health.ok) return <Badge tone="hazard">FalkorDB Disconnected</Badge>;
+  
+  const host = "FalkorDB Cloud"; // Hardcoded for this badge or we can deduce if it's localhost
+  const latency = health.latencyMs ? health.latencyMs.toFixed(1) : "0.0";
+  return <Badge tone="ok">Connected to {host} · graph: {health.graph} · {health.nodes.toLocaleString()} nodes · {latency}ms</Badge>;
 }
 
 export function MissionApp() {
@@ -77,6 +110,22 @@ export function MissionApp() {
     { id: "ok", label: "Human approval", done: decisionStatus === "APPROVED", active: parksAuthority && decisionStatus !== "APPROVED", run: () => setView("review") },
   ];
 
+  const [healthStatus, setHealthStatus] = useState<any>(null);
+
+  if (healthStatus && !healthStatus.ok && healthStatus.error === "NOT_CONNECTED") {
+    return (
+      <div className="flex min-h-dvh flex-col items-center justify-center bg-bg text-fg">
+        <div className="rounded-xl border border-line bg-surface p-6 shadow-xl max-w-md text-center">
+          <Mark className="size-12 mx-auto mb-4" />
+          <h2 className="mb-2 text-xl font-medium text-hazard">Not connected to FalkorDB</h2>
+          <p className="text-sm text-muted">
+            The demo server cannot reach the graph database. Please check your <code>FALKORDB_URL</code> environment variable or ensure the FalkorDB container is running.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-dvh bg-bg text-fg">
       <a href="#main" className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:bg-cyan focus:px-3 focus:py-2 focus:text-primary-foreground">
@@ -87,7 +136,7 @@ export function MissionApp() {
           <div className="flex items-center gap-3">
             <Mark className="size-10 shrink-0 rounded-lg shadow-[0_0_0_1px_rgba(255,255,255,0.08)]" />
             <div>
-              <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-cyan">WatchChange Mesh</p>
+              <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-cyan">Loci</p>
               <h1 className="text-lg font-medium tracking-tight">Cedar County flood watch</h1>
             </div>
           </div>
@@ -95,7 +144,7 @@ export function MissionApp() {
             <Badge tone="amber">Synthetic demo</Badge>
             <Badge tone="cyan">graph {clockLabel(referenceTime)}</Badge>
             <Badge tone={outgoingKilled ? "hazard" : "ok"}>{outgoingKilled ? "outgoing offline" : "watch live"}</Badge>
-            <Badge tone="mute">watchchange_flood_demo</Badge>
+            <FalkorBadge onStatusChange={setHealthStatus} />
           </div>
         </div>
         <p className="mx-auto max-w-[1440px] px-4 pb-3 font-mono text-[11px] text-muted md:px-6">{lastEvent}</p>

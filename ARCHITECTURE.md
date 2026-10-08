@@ -11,7 +11,7 @@ Mission control UI
 ## Topology
 
 - **Frontend:** TanStack Start, React 19, Tailwind v4. Mission-control surface.
-- **Graph:** In-process Falkor-compatible kernel for this host. Same Cypher catalog against `falkordb/falkordb:v4.20.4` via Docker Compose or FalkorDB Cloud (`FALKORDB_URL`).
+- **Graph:** Live FalkorDB instance via `falkordb/falkordb:v4.20.4` (Docker) or FalkorDB Cloud (`FALKORDB_URL`). The in-process kernel is strictly isolated to CI/unit tests (`DEV_KERNEL=1`).
 - **Agents:** Deterministic graph functions. Optional xAI brief is user-initiated and may not invent facts.
 - **Persistence:** Demo flags are session state. The seed is idempotent code. Compose volume `falkor-data` is the durable FalkorDB path.
 

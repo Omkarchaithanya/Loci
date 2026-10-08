@@ -1,4 +1,4 @@
-// WatchChange Mesh — FalkorDB v4.20.4 indexes for graph watchchange_flood_demo
+// Loci — FalkorDB v4.20.4 indexes for graph watchchange_flood_demo
 CREATE INDEX FOR (n:Tenant) ON (n.id);
 CREATE INDEX FOR (n:Incident) ON (n.id);
 CREATE INDEX FOR (n:Hazard) ON (n.id);
