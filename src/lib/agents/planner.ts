@@ -71,7 +71,7 @@ export async function planShelterTransfer(
   const assumptions = [
     `${pick.shelterName} remains OPEN at ${opts.referenceTime}`,
     pick.routeOpen ? "Selected route edges are OPEN" : "Route must be restored before dispatch",
-    pick.destinationAuthority ? "Destination authority is present in the graph" : "Destination authority still unconfirmed",
+    pick.authorityAgencyId ? "Destination authority is present in the graph" : "Destination authority still unconfirmed",
   ];
 
   let routeStr = "open route";
@@ -109,7 +109,7 @@ export async function planShelterTransfer(
     decision_id: decisionId,
     planner_notes: blocked
       ? `Top-ranked graph candidate is ${pick.shelterName} (score ${pick.score}) but the reviewer must see blockers.`
-      : `Graph ranking selected ${pick.shelterName} (score ${pick.score}). Capacity coverage ${Math.round((pick.capacityCoverage??1) * 100)}%, route ${pick.routeMinutes} min.`,
+      : `Graph ranking selected ${pick.shelterName} (score ${pick.score}). Available capacity ${pick.availableCapacity}, route ${pick.routeMinutes} min.`,
   };
 }
 

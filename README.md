@@ -58,6 +58,7 @@ FALKORDB_URL=redis://127.0.0.1:6379
 
 ### 3. Install & Run
 ```bash
+docker-compose up -d
 npm install
 npm run dev
 ```

@@ -1,213 +1,226 @@
-import { useMemo, useEffect, useState } from "react";
-import { Mark } from "@/components/mission/logo";
-import {
-  GraphPanel,
-  HandoffPanel,
-  OverviewPanel,
-  PlanPanel,
-  QueryPanel,
-  ReviewPanel,
-  TemporalPanel,
-  VIEW_META,
-} from "@/components/mission/panels";
+import { useQuery } from "@tanstack/react-query";
+import { useDemo } from "@/lib/demo/store";
+import { getPanelData } from "@/lib/demo/server-fns";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import type { DemoFlags } from "@/lib/demo/world.ts";
-import { T14, T1630, T18, useDemo } from "@/lib/demo/store.ts";
-import { cn } from "@/lib/utils";
-
-function clockLabel(iso: string) {
-  return iso.slice(11, 16) + "Z";
-}
-
-function FalkorBadge({ onStatusChange }: { onStatusChange: (status: any) => void }) {
-  const [health, setHealth] = useState<any>(null);
-
-  useEffect(() => {
-    let mounted = true;
-    const fetchHealth = async () => {
-      try {
-        const res = await fetch("/api/health");
-        const data = await res.json();
-        if (mounted) {
-          setHealth(data);
-          onStatusChange(data);
-        }
-      } catch (e) {
-        if (mounted) {
-          setHealth({ ok: false, error: "NOT_CONNECTED" });
-          onStatusChange({ ok: false, error: "NOT_CONNECTED" });
-        }
-      }
-    };
-    fetchHealth();
-    const int = setInterval(fetchHealth, 5000);
-    return () => { mounted = false; clearInterval(int); };
-  }, [onStatusChange]);
-
-  if (!health) return <Badge tone="mute">Connecting to FalkorDB...</Badge>;
-  if (!health.ok) return <Badge tone="hazard">FalkorDB Disconnected</Badge>;
-  
-  const host = "FalkorDB Cloud"; // Hardcoded for this badge or we can deduce if it's localhost
-  const latency = health.latencyMs ? health.latencyMs.toFixed(1) : "0.0";
-  return <Badge tone="ok">Connected to {host} · graph: {health.graph} · {health.nodes.toLocaleString()} nodes · {latency}ms</Badge>;
-}
+import { EvidencePath, PathCanvas } from "@/components/mission/graph-viz";
 
 export function MissionApp() {
-  const view = useDemo((s) => s.view);
-  const setView = useDemo((s) => s.setView);
-  const referenceTime = useDemo((s) => s.referenceTime);
-  const injectedChange = useDemo((s) => s.injectedChange);
-  const handoffAccepted = useDemo((s) => s.handoffAccepted);
-  const outgoingKilled = useDemo((s) => s.outgoingKilled);
-  const loopOwner = useDemo((s) => s.loopOwner);
-  const parksAuthority = useDemo((s) => s.parksAuthority);
-  const proposalWritten = useDemo((s) => s.proposalWritten);
-  const decisionStatus = useDemo((s) => s.decisionStatus);
-  const rejectionReason = useDemo((s) => s.rejectionReason);
-  const outcomeRecorded = useDemo((s) => s.outcomeRecorded);
-  const lastEvent = useDemo((s) => s.lastEvent);
+  const flags = useDemo((s) => ({
+    referenceTime: s.referenceTime,
+    injectedChange: s.injectedChange,
+    handoffAccepted: s.handoffAccepted,
+    outgoingKilled: s.outgoingKilled,
+    loopOwner: s.loopOwner,
+    parksAuthority: s.parksAuthority,
+    proposalWritten: s.proposalWritten,
+    decisionStatus: s.decisionStatus,
+    rejectionReason: s.rejectionReason,
+    outcomeRecorded: s.outcomeRecorded,
+  }));
+
   const goBaseline = useDemo((s) => s.goBaseline);
   const injectChange = useDemo((s) => s.injectChange);
   const goIncoming = useDemo((s) => s.goIncoming);
   const runPlanner = useDemo((s) => s.runPlanner);
   const confirmAuthority = useDemo((s) => s.confirmAuthority);
-  const reset = useDemo((s) => s.reset);
+  const approve = useDemo((s) => s.approve);
+  const reject = useDemo((s) => s.reject);
+  const proposal = useDemo((s) => s.proposal);
 
-  const flags: DemoFlags = useMemo(
-    () => ({
-      referenceTime,
-      injectedChange,
-      handoffAccepted,
-      outgoingKilled,
-      loopOwner,
-      parksAuthority,
-      proposalWritten,
-      decisionStatus,
-      rejectionReason,
-      outcomeRecorded,
-    }),
-    [
-      referenceTime,
-      injectedChange,
-      handoffAccepted,
-      outgoingKilled,
-      loopOwner,
-      parksAuthority,
-      proposalWritten,
-      decisionStatus,
-      rejectionReason,
-      outcomeRecorded,
-    ],
-  );
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: ["panelData", flags],
+    queryFn: () => getPanelData({ data: flags }),
+  });
 
-  const steps = [
-    { id: "t14", label: "14:00 baseline", done: true, active: !injectedChange && referenceTime === T14, run: goBaseline },
-    { id: "t1630", label: "Inject 16:30", done: injectedChange, active: injectedChange && referenceTime === T1630, run: injectChange },
-    { id: "t18", label: "18:00 incoming", done: referenceTime >= T18, active: referenceTime >= T18 && !proposalWritten, run: goIncoming },
-    { id: "plan", label: "Run planner", done: proposalWritten, active: proposalWritten && decisionStatus === "PROPOSED", run: runPlanner },
-    { id: "auth", label: "Confirm authority", done: parksAuthority, active: proposalWritten && !parksAuthority, run: confirmAuthority },
-    { id: "ok", label: "Human approval", done: decisionStatus === "APPROVED", active: parksAuthority && decisionStatus !== "APPROVED", run: () => setView("review") },
-  ];
+  const runAndRefetch = (fn: (arg?: any) => Promise<void>) => async (arg?: any) => {
+    await fn(arg);
+    refetch();
+  };
 
-  const [healthStatus, setHealthStatus] = useState<any>(null);
-
-  if (healthStatus && !healthStatus.ok && healthStatus.error === "NOT_CONNECTED") {
-    return (
-      <div className="flex min-h-dvh flex-col items-center justify-center bg-bg text-fg">
-        <div className="rounded-xl border border-line bg-surface p-6 shadow-xl max-w-md text-center">
-          <Mark className="size-12 mx-auto mb-4" />
-          <h2 className="mb-2 text-xl font-medium text-hazard">Not connected to FalkorDB</h2>
-          <p className="text-sm text-muted">
-            The demo server cannot reach the graph database. Please check your <code>FALKORDB_URL</code> environment variable or ensure the FalkorDB container is running.
-          </p>
-        </div>
-      </div>
-    );
-  }
-
+  const currentShelter = data?.ranked[0];
+  const isWestClosed = flags.injectedChange;
+  const isRiversideDropped = flags.injectedChange;
+  
   return (
-    <div className="min-h-dvh bg-bg text-fg">
-      <a href="#main" className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:bg-cyan focus:px-3 focus:py-2 focus:text-primary-foreground">
-        Skip to content
-      </a>
-      <header className="border-b border-line">
-        <div className="mx-auto flex max-w-[1440px] flex-col gap-3 px-4 py-3 md:flex-row md:items-center md:justify-between md:px-6">
-          <div className="flex items-center gap-3">
-            <Mark className="size-10 shrink-0 rounded-lg shadow-[0_0_0_1px_rgba(255,255,255,0.08)]" />
-            <div>
-              <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-cyan">Loci</p>
-              <h1 className="text-lg font-medium tracking-tight">Cedar County flood watch</h1>
-            </div>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <Badge tone="amber">Synthetic demo</Badge>
-            <Badge tone="cyan">graph {clockLabel(referenceTime)}</Badge>
-            <Badge tone={outgoingKilled ? "hazard" : "ok"}>{outgoingKilled ? "outgoing offline" : "watch live"}</Badge>
-            <FalkorBadge onStatusChange={setHealthStatus} />
-          </div>
+    <div className="min-h-screen bg-bg text-fg font-sans">
+      <header className="border-b border-border p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-xl font-bold tracking-tight">WatchChange Mesh</h1>
+          <p className="text-sm text-muted mt-1 max-w-2xl">This helps a flood watch decide where people can go. It remembers what was true earlier, and it will not approve a move by itself.</p>
         </div>
-        <p className="mx-auto max-w-[1440px] px-4 pb-3 font-mono text-[11px] text-muted md:px-6">{lastEvent}</p>
+        <div>
+          {isLoading ? <Badge tone="mute">Querying FalkorDB...</Badge> : error ? <Badge tone="hazard">Not connected to the database</Badge> : data ? (
+            <Badge tone="ok">{data.health.graph} · {data.health.nodes} nodes · {data.health.latencyMs}ms</Badge>
+          ) : null}
+        </div>
       </header>
 
-      <div className="border-b border-line bg-surface">
-        <div className="mx-auto flex max-w-[1440px] gap-2 overflow-x-auto px-4 py-3 md:px-6">
-          {steps.map((s, i) => (
-            <button
-              key={s.id}
-              type="button"
-              onClick={s.run}
-              className={cn(
-                "flex min-h-11 shrink-0 items-center gap-2 rounded-md px-3 text-left text-xs shadow-[0_0_0_1px_rgba(255,255,255,0.08)]",
-                s.active ? "bg-cyan-dim text-cyan" : s.done ? "bg-ok-dim text-ok" : "bg-inset text-muted",
+      {error ? (
+        <div className="p-8 text-center text-hazard text-lg font-medium">Not connected to the database</div>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 p-6">
+          <aside className="lg:col-span-1 space-y-2">
+            <StepButton active={!flags.injectedChange} onClick={runAndRefetch(goBaseline)} label="1. 2:00 PM — situation" desc="West Basin is flooding. Riverside High has room. The west road is open." />
+            <StepButton active={flags.injectedChange && !flags.handoffAccepted} onClick={runAndRefetch(injectChange)} label="2. 4:30 PM — something changed" desc="The west road closed. Riverside High dropped from 42 beds to 8. The 2:00 PM facts are still stored." />
+            <StepButton active={flags.handoffAccepted && !flags.proposalWritten} onClick={runAndRefetch(goIncoming)} label="3. 6:00 PM — shift change" desc="The first operator is offline. The next operator can still see the unfinished job and the shelter that already failed." />
+            <StepButton active={flags.proposalWritten && !flags.parksAuthority} onClick={runAndRefetch(runPlanner)} label="4. Recommendation" desc="Send people to Civic Arena by the north road. Riverside High is unsafe. North School already failed." />
+            <StepButton active={flags.parksAuthority && flags.decisionStatus !== "APPROVED" && flags.decisionStatus !== "REJECTED"} onClick={runAndRefetch(confirmAuthority)} label="5. Who is in charge" desc="Civic Arena stays blocked until someone confirms Parks is allowed to run it." />
+            <StepButton active={flags.decisionStatus === "APPROVED" || flags.decisionStatus === "REJECTED"} onClick={() => {}} label="6. Human decision" desc="A person approves or rejects. The choice is saved in the database." />
+          </aside>
+          
+          <main className="lg:col-span-2 space-y-6">
+            <section className="bg-surface border border-border rounded-xl p-6">
+              <h2 className="text-lg font-semibold mb-4">Recommendation Card</h2>
+              {!flags.proposalWritten ? (
+                <p className="text-muted">No recommendation yet. Apply the 4:30 PM change, then ask for a recommendation.</p>
+              ) : (
+                <div className="space-y-6">
+                  {currentShelter ? (
+                    <div>
+                      <div className="bg-inset rounded-lg p-4 border border-border">
+                        <p className="text-sm text-cyan font-mono mb-1 uppercase tracking-wider">Action</p>
+                        <p className="text-xl font-medium">{currentShelter.shelterName}</p>
+                        <p className="text-sm mt-2 text-muted">Why: This shelter has open routes, sufficient capacity, and appropriate authority confirmed.</p>
+                      </div>
+
+                      <div className="mt-4">
+                        <h4 className="text-sm font-semibold mb-2">What was rejected:</h4>
+                        <ul className="space-y-2">
+                          {data?.ranked.slice(1).map(r => (
+                            <li key={r.shelterId} className="flex gap-2 text-sm bg-surface p-2 rounded border border-border">
+                              <span className="text-hazard line-through decoration-hazard/50">{r.shelterName}</span>
+                              <span className="text-muted">— {r.blockingReasons.join(". ")}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                      
+                      <div className="mt-6 flex gap-4">
+                        <Button 
+                          onClick={runAndRefetch(() => approve())} 
+                          disabled={flags.decisionStatus === "APPROVED"}
+                          variant={flags.decisionStatus === "APPROVED" ? "primary" : "secondary"}
+                          className={flags.decisionStatus === "APPROVED" ? "bg-ok text-bg hover:bg-ok/90" : ""}
+                        >
+                          Approve
+                        </Button>
+                        <Button 
+                          onClick={runAndRefetch(() => reject("Not safe"))} 
+                          disabled={flags.decisionStatus === "REJECTED"}
+                          variant={flags.decisionStatus === "REJECTED" ? "danger" : "secondary"}
+                        >
+                          Reject
+                        </Button>
+                      </div>
+                      {flags.decisionStatus === "APPROVED" && <p className="mt-4 text-ok font-semibold">Status: APPROVED</p>}
+                      {flags.decisionStatus === "REJECTED" && <p className="mt-4 text-hazard font-semibold">Status: REJECTED</p>}
+                    </div>
+                  ) : (
+                    <p className="text-muted">No valid shelters found.</p>
+                  )}
+                </div>
               )}
-            >
-              <span className="font-mono tabular-nums">{i + 1}</span>
-              {s.label}
-            </button>
-          ))}
-          <Button size="sm" className="ml-auto shrink-0" onClick={reset}>
-            Reset demo
-          </Button>
+            </section>
+
+            <section className="bg-surface border border-border rounded-xl p-6">
+              <h2 className="text-lg font-semibold mb-4">Why this recommendation</h2>
+              {proposal && proposal.graph_path ? (
+                 <PathCanvas nodes={proposal.graph_path} />
+              ) : (
+                <p className="text-muted">Run the planner to materialize an evidence path.</p>
+              )}
+            </section>
+
+            <section className="bg-surface border border-border rounded-xl p-6">
+              <h2 className="text-lg font-semibold mb-4">Still unfinished</h2>
+              {data?.unownedLoops && data.unownedLoops.length > 0 ? (
+                <div className="space-y-2 text-sm">
+                  <p>Open loop: <span className="font-mono text-cyan">{data.unownedLoops[0].id}</span> ({data.unownedLoops[0].description})</p>
+                  <p>Owner: {flags.loopOwner || "Unassigned"}</p>
+                  {data.failedAttempts.length > 0 && (
+                    <p className="text-amber">North School failure: {data.failedAttempts[0].reason}</p>
+                  )}
+                </div>
+              ) : (
+                <p className="text-muted">No unowned open loops.</p>
+              )}
+            </section>
+          </main>
+
+          <aside className="lg:col-span-1 space-y-6">
+            <section className="bg-surface border border-border rounded-xl p-6">
+              <h2 className="text-lg font-semibold mb-4">Facts that matter</h2>
+              <div className="space-y-4 text-sm">
+                <div className="grid grid-cols-2 gap-2 text-muted font-mono text-[10px] uppercase tracking-widest border-b border-border pb-2">
+                  <div>At 2:00 PM</div>
+                  <div>Now</div>
+                </div>
+                
+                <FactRow label="Riverside Beds" oldVal="42" newVal={isRiversideDropped ? "8" : "42"} changed={isRiversideDropped} />
+                <FactRow label="West Road" oldVal="OPEN" newVal={isWestClosed ? "CLOSED" : "OPEN"} changed={isWestClosed} />
+                <FactRow label="Civic Arena Beds" oldVal="120" newVal="120" changed={false} />
+                <FactRow label="North Road" oldVal="OPEN" newVal="OPEN" changed={false} />
+              </div>
+            </section>
+
+            <section className="bg-surface border border-border rounded-xl p-6">
+              <h2 className="text-lg font-semibold mb-4">Map</h2>
+              <svg viewBox="0 0 200 200" className="w-full h-auto bg-inset rounded border border-border">
+                {/* Zones */}
+                <circle cx="50" cy="150" r="30" fill="var(--color-hazard)" fillOpacity="0.2" stroke="var(--color-hazard)" />
+                <text x="50" y="155" fontSize="10" textAnchor="middle" fill="var(--color-fg)">West Basin</text>
+
+                {/* Shelters */}
+                <rect x="25" y="40" width="50" height="30" rx="4" fill="var(--color-ok)" fillOpacity="0.2" stroke="var(--color-ok)" />
+                <text x="50" y="58" fontSize="10" textAnchor="middle" fill="var(--color-fg)">Riverside High</text>
+
+                <rect x="125" y="40" width="50" height="30" rx="4" fill="var(--color-ok)" fillOpacity="0.2" stroke="var(--color-ok)" />
+                <text x="150" y="58" fontSize="10" textAnchor="middle" fill="var(--color-fg)">Civic Arena</text>
+
+                {/* Roads */}
+                {/* West Connector */}
+                <line x1="50" y1="120" x2="50" y2="70" stroke={isWestClosed ? "var(--color-hazard)" : "var(--color-fg)"} strokeWidth="4" />
+                <text x="40" y="95" fontSize="8" transform="rotate(-90 40,95)" fill="var(--color-muted)">West Connector</text>
+
+                {/* North Road */}
+                <line x1="80" y1="140" x2="150" y2="70" stroke={flags.proposalWritten && currentShelter?.shelterId === "shelter_civic" ? "var(--color-cyan)" : "var(--color-fg)"} strokeWidth="4" />
+                <text x="125" y="115" fontSize="8" transform="rotate(-45 125,115)" fill="var(--color-muted)">North Road</text>
+              </svg>
+              <div className="mt-3 text-xs text-muted space-y-1">
+                 <p className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-hazard/20 border border-hazard"></span> Flooded Zone</p>
+                 <p className="flex items-center gap-2"><span className="w-3 h-3 rounded bg-ok/20 border border-ok"></span> Shelter</p>
+                 <p className="flex items-center gap-2"><span className="w-3 h-1 bg-hazard"></span> Closed Road</p>
+                 <p className="flex items-center gap-2"><span className="w-3 h-1 bg-cyan"></span> Recommended Route</p>
+              </div>
+            </section>
+          </aside>
         </div>
+      )}
+    </div>
+  );
+}
+
+function StepButton({ active, onClick, label, desc }: { active: boolean, onClick: () => void, label: string, desc: string }) {
+  return (
+    <div className={`p-4 rounded-lg border-l-4 cursor-pointer transition-colors ${active ? 'border-primary bg-primary/10 shadow-sm' : 'border-transparent hover:bg-surface/50'}`} onClick={onClick}>
+      <h4 className={`font-semibold ${active ? 'text-primary' : 'text-fg'}`}>{label}</h4>
+      {active && <p className="text-sm text-muted mt-2 leading-relaxed">{desc}</p>}
+    </div>
+  );
+}
+
+function FactRow({ label, oldVal, newVal, changed }: { label: string, oldVal: string, newVal: string, changed: boolean }) {
+  return (
+    <div className={`grid grid-cols-2 gap-2 py-2 items-center border-b border-border/50 last:border-0 ${changed ? 'bg-amber/5 rounded px-2 -mx-2' : ''}`}>
+      <div className="flex flex-col">
+        <span className="text-xs text-muted">{label}</span>
+        <span className={`${changed ? 'line-through text-muted' : ''}`}>{oldVal}</span>
       </div>
-
-      <div className="mx-auto flex max-w-[1440px] flex-col lg:flex-row">
-        <nav aria-label="Views" className="flex gap-1 overflow-x-auto border-b border-line p-3 lg:w-52 lg:flex-col lg:border-b-0 lg:border-r lg:py-5">
-          {VIEW_META.map((v) => {
-            const Icon = v.icon;
-            const on = view === v.id;
-            return (
-              <button
-                key={v.id}
-                type="button"
-                onClick={() => setView(v.id)}
-                className={cn(
-                  "flex min-h-11 shrink-0 items-center gap-2 rounded-md px-3 text-sm",
-                  on ? "bg-elevated text-cyan" : "text-muted hover:bg-elevated hover:text-fg",
-                )}
-              >
-                <Icon className="size-4" />
-                {v.label}
-              </button>
-            );
-          })}
-        </nav>
-
-        <main id="main" className="min-w-0 flex-1 px-4 py-5 md:px-6 md:py-6">
-          {view === "overview" ? <OverviewPanel flags={flags} /> : null}
-          {view === "temporal" ? <TemporalPanel flags={flags} /> : null}
-          {view === "handoff" ? <HandoffPanel flags={flags} /> : null}
-          {view === "plan" ? <PlanPanel flags={flags} /> : null}
-          {view === "review" ? <ReviewPanel flags={flags} /> : null}
-          {view === "graph" ? <GraphPanel flags={flags} /> : null}
-          {view === "queries" ? <QueryPanel /> : null}
-        </main>
+      <div>
+        <span className={`font-medium ${changed ? 'text-amber' : ''}`}>{newVal}</span>
+        {changed && <span className="ml-2 text-[10px] uppercase text-amber border border-amber/30 px-1 rounded">Changed</span>}
       </div>
-
-      <footer className="border-t border-line px-4 py-4 text-center text-xs text-subtle md:px-6">
-        Decision support only. Synthetic households. No live emergency dispatch.
-      </footer>
     </div>
   );
 }

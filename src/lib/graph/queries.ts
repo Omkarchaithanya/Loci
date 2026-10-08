@@ -49,7 +49,7 @@ RETURN h.summary, o, owner, fa`,
 } as const;
 
 export async function activeHazards(store: GraphStore, t: string) {
-  const res = await store.roQuery(`MATCH (h:Hazard) OPTIONAL MATCH (h)-[:AFFECTS]->(z:Zone) RETURN h, collect(z) as zones`);
+  const res = await store.query(`MATCH (h:Hazard) OPTIONAL MATCH (h)-[:AFFECTS]->(z:Zone) RETURN h, collect(z) as zones`);
   return res.data.filter((row: any) => {
     const h = row.h.properties;
     if (h.status !== "ACTIVE") return false;
@@ -65,13 +65,13 @@ export async function activeHazards(store: GraphStore, t: string) {
 }
 
 export async function needsByZone(store: GraphStore, t: string) {
-  const res = await store.roQuery(`MATCH (z:Zone) OPTIONAL MATCH (hh:Household)-[:LOCATED_IN]->(z) OPTIONAL MATCH (hh)-[:HAS_NEED]->(need:Need) RETURN z, collect(hh) as hhs, collect(need) as needs`);
+  const res = await store.query(`MATCH (z:Zone) OPTIONAL MATCH (hh:Household)-[:LOCATED_IN]->(z) OPTIONAL MATCH (hh)-[:HAS_NEED]->(need:Need) RETURN z, collect(hh) as hhs, collect(need) as needs`);
   const rows = [];
   for (const row of res.data) {
     const z = row.z.properties;
     const hhs = row.hhs.filter((h: any) => h != null);
     const needs = row.needs.filter((n: any) => n != null && n.properties.status === "OPEN" && isValidAt(String(n.properties.valid_from ?? ""), n.properties.valid_to == null ? null : String(n.properties.valid_to), t));
-    
+
     if (hhs.length === 0) continue;
     let qty = 0;
     const kinds = new Set<string>();
@@ -95,7 +95,7 @@ export async function failedAttemptsFor(store: GraphStore, targetId?: string) {
   const q = targetId
     ? `MATCH (fa:FailedAttempt)-[:ABOUT]->(o:OpenLoop) OPTIONAL MATCH (fa)-[:TARGETS]->(target) WHERE target.id = $targetId RETURN fa, o, target`
     : `MATCH (fa:FailedAttempt)-[:ABOUT]->(o:OpenLoop) OPTIONAL MATCH (fa)-[:TARGETS]->(target) RETURN fa, o, target`;
-  const res = await store.roQuery(q, targetId ? { targetId } : {});
+  const res = await store.query(q, targetId ? { targetId } : {});
   return res.data.map((row: any) => ({
     id: row.fa.properties.id,
     actionKind: String(row.fa.properties.action_kind),
@@ -106,7 +106,7 @@ export async function failedAttemptsFor(store: GraphStore, targetId?: string) {
 }
 
 export async function unownedOpenLoops(store: GraphStore) {
-  const res = await store.roQuery(CYPHER.unownedLoops);
+  const res = await store.query(CYPHER.unownedLoops);
   return res.data.map((row: any) => ({
     id: String(row['o.id']),
     title: String(row['o.title']),
@@ -116,7 +116,7 @@ export async function unownedOpenLoops(store: GraphStore) {
 }
 
 export async function openLoops(store: GraphStore) {
-  const res = await store.roQuery(`MATCH (o:OpenLoop) OPTIONAL MATCH (a:Agent)-[:OWNS]->(o) RETURN o, a`);
+  const res = await store.query(`MATCH (o:OpenLoop) OPTIONAL MATCH (a:Agent)-[:OWNS]->(o) RETURN o, a`);
   return res.data.map((row: any) => ({
     id: row.o.properties.id,
     title: String(row.o.properties.title),
@@ -128,7 +128,7 @@ export async function openLoops(store: GraphStore) {
 }
 
 export async function handoffContext(store: GraphStore, handoffId: string) {
-  const res = await store.roQuery(CYPHER.handoff, { handoff_id: handoffId });
+  const res = await store.query(CYPHER.handoff, { handoff_id: handoffId });
   if (!res.data.length) return { loops: [] };
   const loops = res.data.map((row: any) => ({
     id: row.o.properties.id,
@@ -142,7 +142,7 @@ export async function handoffContext(store: GraphStore, handoffId: string) {
 
 export async function supersessionChain(store: GraphStore, t: string) {
   // We ignore t parameter for the chain as per original implementation logic, it returned the chain backwards
-  const res = await store.roQuery(CYPHER.supersession);
+  const res = await store.query(CYPHER.supersession);
   return res.data.map((row: any) => ({
     subjectId: String(row['subject.id']),
     predicate: String(row['newer.predicate']),
@@ -153,7 +153,7 @@ export async function supersessionChain(store: GraphStore, t: string) {
 }
 
 export async function sheltersAt(store: GraphStore, _t: string) {
-  const res = await store.roQuery(`MATCH (s:Shelter)-[:LOCATED_IN]->(z:Zone) OPTIONAL MATCH (s)-[:STAGED_AT]->(site:Site) RETURN s, z, site`);
+  const res = await store.query(`MATCH (s:Shelter)-[:LOCATED_IN]->(z:Zone) OPTIONAL MATCH (s)-[:STAGED_AT]->(site:Site) RETURN s, z, site`);
   return res.data.map((row: any) => ({
     id: row.s.properties.id,
     name: String(row.s.properties.name),
@@ -168,16 +168,16 @@ export async function sheltersAt(store: GraphStore, _t: string) {
 }
 
 export async function candidatePlans(store: GraphStore, hazardId: string, t: string): Promise<ShelterCandidate[]> {
-  const res = await store.roQuery(CYPHER.candidatePlan, { hazard_id: hazardId });
-  
+  const res = await store.query(CYPHER.candidatePlan, { hazard_id: hazardId });
+
   // To compute shortest path routeMinutes we fetch all Site->CONNECTED_BY->Site edges and do local BFS
-  const edgesRes = await store.roQuery(`MATCH (s:Site)-[r:CONNECTED_BY]->(t:Site) RETURN s.id as from, t.id as to, r`);
+  const edgesRes = await store.query(`MATCH (s:Site)-[r:CONNECTED_BY]->(t:Site) RETURN s.id as from, t.id as to, r`);
   const adj = new Map<string, any[]>();
   for (const row of edgesRes.data) {
     if (!adj.has(row.from)) adj.set(row.from, []);
     adj.get(row.from)!.push({ to: row.to, props: row.r.properties });
   }
-  
+
   const shortestPath = (start: string, end: string) => {
     const dist = new Map<string, number>();
     const prev = new Map<string, string>();
@@ -248,7 +248,6 @@ export async function candidatePlans(store: GraphStore, hazardId: string, t: str
     if (available < Number(row.need.properties.quantity)) blockingReasons.push(`Insufficient capacity (need \${row.need.properties.quantity}, have \${available})`);
     if (String(row.need.properties.kind) === "MEDICAL_SUPPORT" && !services.includes("MEDICAL")) blockingReasons.push("Lacks MEDICAL service");
     if (!accessible) blockingReasons.push("Shelter not marked accessible");
-    if (!row.destAgency) blockingReasons.push(`No confirmed authority on destination zone \${row.sz?.properties?.name ?? row.s.properties.name}`);
     if (row.fa) blockingReasons.push(`Prior failure: \${row.fa.properties.reason}`);
 
     cands.push({
@@ -267,13 +266,10 @@ export async function candidatePlans(store: GraphStore, hazardId: string, t: str
       assetId: row.asset ? String(row.asset.properties.id) : null,
       blockingReasons,
       isViable: blockingReasons.length === 0,
-      score: 100 - routeMinutes + available,
+      score: blockingReasons.length === 0 ? 100 - routeMinutes + available : 0,
     });
   }
-  return cands.sort((a: any, b: any) => {
-    if (a.isViable !== b.isViable) return a.isViable ? -1 : 1;
-    return b.score - a.score;
-  });
+  return cands.sort((a: any, b: any) => b.score - a.score);
 }
 
 export async function evidencePacket(store: GraphStore, factIds: string[]) {
@@ -286,26 +282,20 @@ export async function evidencePacket(store: GraphStore, factIds: string[]) {
 }
 
 export async function graphHealth(store: GraphStore) {
-  try {
-    const nRes = await store.roQuery("MATCH (n) RETURN count(n) as count");
-    const rRes = await store.roQuery("MATCH ()-[r]->() RETURN count(r) as count");
-    const nodes = Number(nRes.data[0]['count(n)']);
-    const rels = Number(rRes.data[0]['count(r)']);
-    return {
-      ready: nodes > 0,
-      graph: store.name || "watchchange_flood_demo",
-      nodes,
-      relationships: rels,
-      latencyMs: (nRes as any).totalTimeMs || (nRes as any).serverTimeMs || 0
-    };
-  } catch (e: any) {
-    if (e.message === "NOT_CONNECTED") throw e;
-    return { ready: false, graph: store.name || "unknown", nodes: 0, relationships: 0, latencyMs: 0 };
-  }
+  const nRes = await store.query("MATCH (n) RETURN count(n) as count");
+  const rRes = await store.query("MATCH ()-[r]->() RETURN count(r) as count");
+  const nodes = Number(nRes.data[0]['count(n)']);
+  const rels = Number(rRes.data[0]['count(r)']);
+  return {
+    ready: nodes > 0,
+    graph: "watchchange_flood_demo",
+    nodes,
+    relationships: rels,
+  };
 }
 
 export async function episodesSince(store: GraphStore, since: string) {
-  const res = await store.roQuery(`MATCH (ep:Episode) WHERE ep.occurred_at >= $since RETURN ep`, { since });
+  const res = await store.query(`MATCH (ep:Episode) WHERE ep.occurred_at >= $since RETURN ep`, { since });
   return res.data.map((row: any) => ({
     id: row.ep.properties.id,
     kind: String(row.ep.properties.kind),
@@ -317,7 +307,7 @@ export async function episodesSince(store: GraphStore, since: string) {
 }
 
 export async function decisions(store: GraphStore) {
-  const res = await store.roQuery(`MATCH (d:Decision) RETURN d`);
+  const res = await store.query(`MATCH (d:Decision) RETURN d`);
   return res.data.map((row: any) => ({
     id: row.d.properties.id,
     action: String(row.d.properties.action),

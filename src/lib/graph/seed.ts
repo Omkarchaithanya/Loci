@@ -71,8 +71,8 @@ function fact(
 
 export async function seedBaseline(store: GraphStore): Promise<void> {
   const g = new BatchBuilder();
-  
-  
+
+
 
   n(g, ["Tenant"], "tenant_cedar", { name: "Cedar County OEM", created_at: NOW });
   n(g, ["Incident"], "inc_cedar_flood", {
@@ -357,13 +357,13 @@ export async function seedBaseline(store: GraphStore): Promise<void> {
     vulnerability: string;
     needs: Array<{ id: string; kind: string; qty: number }>;
   }> = [
-    { id: "hh_w01", size: 4, mobility: "LIMITED", vulnerability: "MEDICAL", needs: [{ id: "need_w01_s", kind: "SHELTER", qty: 4 }, { id: "need_w01_m", kind: "MEDICAL", qty: 1 }] },
-    { id: "hh_w02", size: 3, mobility: "FULL", vulnerability: "FOOD", needs: [{ id: "need_w02_s", kind: "SHELTER", qty: 3 }, { id: "need_w02_f", kind: "FOOD", qty: 3 }] },
-    { id: "hh_w03", size: 5, mobility: "FULL", vulnerability: "NONE", needs: [{ id: "need_w03_s", kind: "SHELTER", qty: 5 }] },
-    { id: "hh_w04", size: 2, mobility: "LIMITED", vulnerability: "MEDICAL", needs: [{ id: "need_w04_s", kind: "SHELTER", qty: 2 }, { id: "need_w04_m", kind: "MEDICAL", qty: 1 }] },
-    { id: "hh_w05", size: 6, mobility: "FULL", vulnerability: "FOOD", needs: [{ id: "need_w05_s", kind: "SHELTER", qty: 6 }, { id: "need_w05_f", kind: "FOOD", qty: 6 }] },
-    { id: "hh_w06", size: 4, mobility: "FULL", vulnerability: "NONE", needs: [{ id: "need_w06_s", kind: "SHELTER", qty: 4 }] },
-  ];
+      { id: "hh_w01", size: 4, mobility: "LIMITED", vulnerability: "MEDICAL", needs: [{ id: "need_w01_s", kind: "SHELTER", qty: 4 }, { id: "need_w01_m", kind: "MEDICAL", qty: 1 }] },
+      { id: "hh_w02", size: 3, mobility: "FULL", vulnerability: "FOOD", needs: [{ id: "need_w02_s", kind: "SHELTER", qty: 3 }, { id: "need_w02_f", kind: "FOOD", qty: 3 }] },
+      { id: "hh_w03", size: 5, mobility: "FULL", vulnerability: "NONE", needs: [{ id: "need_w03_s", kind: "SHELTER", qty: 5 }] },
+      { id: "hh_w04", size: 2, mobility: "LIMITED", vulnerability: "MEDICAL", needs: [{ id: "need_w04_s", kind: "SHELTER", qty: 2 }, { id: "need_w04_m", kind: "MEDICAL", qty: 1 }] },
+      { id: "hh_w05", size: 6, mobility: "FULL", vulnerability: "FOOD", needs: [{ id: "need_w05_s", kind: "SHELTER", qty: 6 }, { id: "need_w05_f", kind: "FOOD", qty: 6 }] },
+      { id: "hh_w06", size: 4, mobility: "FULL", vulnerability: "NONE", needs: [{ id: "need_w06_s", kind: "SHELTER", qty: 4 }] },
+    ];
   for (const h of households) {
     n(g, ["Household"], h.id, {
       size: h.size,
@@ -601,7 +601,7 @@ export async function seedBaseline(store: GraphStore): Promise<void> {
   r(g, "TRANSFERS", "handoff_1755", "ol_west_overflow");
   r(g, "CREATED_HANDOFF", "ep_outgoing_1400", "handoff_1755");
 
-    const ALLOWED_LABELS = new Set(["Tenant", "Incident", "Watch", "Agent", "Human", "Session", "Zone", "Site", "Road", "Hazard", "Constraint", "Source", "Household", "Person", "Need", "Shelter", "Agency", "Asset", "Fact", "Evidence", "OpenLoop", "FailedAttempt", "Episode", "Decision", "Handoff", "DecisionTrace", "Outcome"]);
+  const ALLOWED_LABELS = new Set(["Tenant", "Incident", "Watch", "Agent", "Human", "Session", "Zone", "Site", "Road", "Hazard", "Constraint", "Source", "Household", "Person", "Need", "Shelter", "Agency", "Asset", "Fact", "Evidence", "OpenLoop", "FailedAttempt", "Episode", "Decision", "Handoff", "DecisionTrace", "Outcome"]);
   const ALLOWED_RELS = new Set(["OWNS_INCIDENT", "HAS_WATCH", "MEMBER_OF", "HAS_SESSION", "RUN_BY", "CONTAINS", "CONNECTED_BY", "CONNECTS_TO", "HAS_HAZARD", "AFFECTS", "HAS_CONSTRAINT", "SUPPORTS", "LOCATED_IN", "HAS_NEED", "HAS_SHELTER", "STAGED_AT", "HAS_AUTHORITY", "OPERATES", "WORKS_FOR", "REPRESENTS", "CONTROLS", "CAN_SERVE", "ABOUT", "SUPPORTED_BY", "FROM_SOURCE", "DEPENDS_ON", "TARGETS", "RECORDED", "MENTIONS", "CREATED", "RECORDED_ATTEMPT", "FOR_INCIDENT", "FOR_ZONE", "USES_FACT", "MADE", "REQUIRES_APPROVAL_FROM", "RECORDED_DECISION", "HAS_HANDOFF", "FROM_AGENT", "TO_AGENT", "TRANSFERS", "CREATED_HANDOFF", "SUPERSEDES", "OBSERVED", "LED_TO", "RECORDED_OUTCOME", "OWNS", "PROPOSED"]);
 
   for (const [label, nodes] of Object.entries(g.nodesByLabel)) {
@@ -641,7 +641,7 @@ export async function injectChange1630(store: GraphStore): Promise<void> {
   await store.query(`MATCH (r:Road {id: 'road_west_connector'}) SET r.status = 'CLOSED', r.closed_at = $t, r.closed_reason = 'Water over both lanes at mile 1.4', r.updated_at = $t`, { t: T1630 });
   await store.query(`MATCH (:Site {id: 'site_west_neighborhoods'})-[rel:CONNECTED_BY {road_id: 'road_west_connector'}]->() SET rel.status = 'CLOSED', rel.closed_at = $t, rel.closed_reason = 'Water over both lanes'`, { t: T1630 });
   await store.query(`MATCH (s:Shelter {id: 'shelter_riverside'}) SET s.occupied = 52, s.updated_at = $t`, { t: T1630 });
-  
+
   await store.query(`MATCH (f:Fact {id: 'fact_road_west_1400'}) SET f.status = 'SUPERSEDED', f.valid_to = $t`, { t: T1630 });
   await store.query(`MERGE (f:Fact {id: 'fact_road_west_1630'}) SET f += {subject_id: 'road_west_connector', predicate: 'status', object_value: 'CLOSED', value_type: 'STRING', valid_from: $t, valid_to: null, observed_at: $t, confidence: 0.94, status: 'VALID', source_id: 'src_dot_1630', created_at: $t, updated_at: $t}`, { t: T1630 });
   await store.query(`MATCH (old:Fact {id: 'fact_road_west_1400'}), (new:Fact {id: 'fact_road_west_1630'}) MERGE (new)-[:SUPERSEDES]->(old)`);

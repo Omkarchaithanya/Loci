@@ -1,13 +1,18 @@
 process.env.FALKORDB_GRAPH = "watchchange_test";
-process.env.FALKORDB_URL = "redis://localhost:6379";
+process.env.FALKORDB_URL = "redis://127.0.0.1:6379";
 import assert from "node:assert/strict";
-import { describe, it, beforeEach } from "node:test";
+import { describe, it, beforeEach, after } from "node:test";
 import { buildWorld, INITIAL_FLAGS, planNow, reviewNow, T14, T1630, T18 } from "../demo/world.ts";
 import { getGraphStore } from "./store.ts";
 import { reconstructFacts, unownedOpenLoops, failedAttemptsFor, supersessionChain, candidatePlans } from "./queries.ts";
 import { seedBaseline } from "./seed.ts";
 
 describe("Loci winning demo", () => {
+  after(async () => {
+    const store = await getGraphStore();
+    store.close();
+  });
+
   beforeEach(async () => {
     const store = await getGraphStore();
     await store.query("MATCH (n) DETACH DELETE n");
@@ -58,6 +63,11 @@ describe("Loci winning demo", () => {
     const chain = await supersessionChain(store, T18);
     assert.ok(chain.some((c: any) => c.oldValue === "42" && c.newValue === "8"));
     assert.ok(chain.some((c: any) => c.oldValue === "OPEN" && c.newValue === "CLOSED"));
+
+    // Also assert candidatePlans uses facts valid at the requested time
+    const ranked14 = await candidatePlans(store, "hazard_river_rise", T14);
+    const riverside14 = ranked14.find((c) => c.shelterId === "shelter_riverside");
+    assert.equal(riverside14?.availableCapacity, 42);
   });
 
   it("pivots to Civic Arena at 18:00 after the route closure", async () => {
