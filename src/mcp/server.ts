@@ -2,7 +2,7 @@ import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { CallToolRequestSchema, ListToolsRequestSchema } from "@modelcontextprotocol/sdk/types.js";
 import { getGraphStore } from "../lib/graph/store.ts";
-import { candidatePlans } from "../lib/graph/queries.ts";
+import { planShelterTransfer } from "../lib/agents/planner.ts";
 
 const server = new Server(
   {
@@ -140,8 +140,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   if (request.params.name === "get_failed_attempts") {
     const { shelter_id } = request.params.arguments as { shelter_id: string };
     const cypher = `
-      MATCH (a:Attempt)-[:TARGETED]->(s:Shelter {id: $shelter_id})
-      WHERE a.status = 'FAILED'
+      MATCH (a:FailedAttempt)-[:TARGETS]->(s:Shelter {id: $shelter_id})
       OPTIONAL MATCH (a)-[:BLOCKED_BY]->(reason)
       RETURN a.id as attemptId, a.timestamp as timestamp, collect(reason.id) as blockingReasons
     `;
@@ -154,9 +153,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   if (request.params.name === "plan_shelter_transfer") {
     const { hazard_id, timestamp } = request.params.arguments as { hazard_id: string; timestamp: string };
     try {
-      const plans = await candidatePlans(store, hazard_id, timestamp);
+      const plan = await planShelterTransfer(store, { hazardId: hazard_id, referenceTime: timestamp });
       return {
-        content: [{ type: "text", text: JSON.stringify(plans, null, 2) }],
+        content: [{ type: "text", text: JSON.stringify(plan, null, 2) }],
       };
     } catch (e: any) {
       return {

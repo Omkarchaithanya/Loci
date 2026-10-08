@@ -170,15 +170,27 @@ export async function sheltersAt(store: GraphStore, _t: string) {
 export async function candidatePlans(store: GraphStore, hazardId: string, t: string): Promise<ShelterCandidate[]> {
   const res = await store.query(CYPHER.candidatePlan, { hazard_id: hazardId });
 
+  const factsRes = await factsAtTime(store, t);
+  const temporal = new Map<string, Record<string, string>>();
+  for (const row of factsRes) {
+    if (!temporal.has(row.subjectId)) temporal.set(row.subjectId, {});
+    temporal.get(row.subjectId)![row.predicate] = String(row.objectValue);
+  }
+
   // To compute shortest path routeMinutes we fetch all Site->CONNECTED_BY->Site edges and do local BFS
   const edgesRes = await store.query(`MATCH (s:Site)-[r:CONNECTED_BY]->(t:Site) RETURN s.id as from, t.id as to, r`);
   const adj = new Map<string, any[]>();
   for (const row of edgesRes.data) {
     if (!adj.has(row.from)) adj.set(row.from, []);
-    adj.get(row.from)!.push({ to: row.to, props: row.r.properties });
+    const props = { ...row.r.properties };
+    const roadId = props.road_id;
+    if (roadId && temporal.has(roadId) && temporal.get(roadId)!.status) {
+      props.status = temporal.get(roadId)!.status;
+    }
+    adj.get(row.from)!.push({ to: row.to, props });
   }
 
-  const shortestPath = (start: string, end: string) => {
+  const shortestPath = (start: string, end: string, ignoreStatus = false) => {
     const dist = new Map<string, number>();
     const prev = new Map<string, string>();
     const road = new Map<string, string>();
@@ -190,7 +202,7 @@ export async function candidatePlans(store: GraphStore, hazardId: string, t: str
       if (u === end) break;
       const edges = adj.get(u) || [];
       for (const e of edges) {
-        if (e.props.status !== "OPEN") continue;
+        if (!ignoreStatus && e.props.status !== "OPEN") continue;
         const alt = dist.get(u)! + Number(e.props.minutes ?? 1);
         if (!dist.has(e.to) || alt < dist.get(e.to)!) {
           dist.set(e.to, alt);
@@ -225,10 +237,11 @@ export async function candidatePlans(store: GraphStore, hazardId: string, t: str
     let routeMinutes = 0;
     let routeSiteIds: string[] = origin && dest ? [origin, dest] : [];
     let routeRoadIds: string[] = [];
+    let closedRoad = "";
     const blockedRoads: string[] = [];
 
     if (origin && dest && origin !== dest) {
-      const openPath = shortestPath(origin, dest);
+      const openPath = shortestPath(origin, dest, false);
       if (openPath) {
         routeMinutes = openPath.minutes;
         routeSiteIds = openPath.siteIds;
@@ -236,19 +249,38 @@ export async function candidatePlans(store: GraphStore, hazardId: string, t: str
       } else {
         routeOpen = false;
         routeMinutes = 999;
+        const anyPath = shortestPath(origin, dest, true);
+        if (anyPath) {
+          for (let i = 0; i < anyPath.siteIds.length - 1; i++) {
+            const u = anyPath.siteIds[i];
+            const v = anyPath.siteIds[i+1];
+            const edge = adj.get(u)?.find(e => e.to === v);
+            if (edge && edge.props.status !== "OPEN") {
+              closedRoad = edge.props.road_id || "unknown road";
+              break;
+            }
+          }
+        }
       }
     }
 
-    const available = Number(row.s.properties.capacity) - Number(row.s.properties.occupied);
+    const shelterId = row.s.properties.id;
+    let available = Number(row.s.properties.capacity) - Number(row.s.properties.occupied);
+    if (temporal.has(shelterId) && temporal.get(shelterId)!.available_cots) {
+      available = Number(temporal.get(shelterId)!.available_cots);
+    }
     const accessible = Boolean(row.s.properties.accessible);
     const services = Array.isArray(row.s.properties.services) ? row.s.properties.services : [];
 
+    const originName = row.origin?.properties?.name ?? origin;
+    const destName = row.dest?.properties?.name ?? dest;
     const blockingReasons: string[] = [];
-    if (!routeOpen) blockingReasons.push(`No OPEN route from \${origin} to \${dest}`);
-    if (available < Number(row.need.properties.quantity)) blockingReasons.push(`Insufficient capacity (need \${row.need.properties.quantity}, have \${available})`);
-    if (String(row.need.properties.kind) === "MEDICAL_SUPPORT" && !services.includes("MEDICAL")) blockingReasons.push("Lacks MEDICAL service");
+    if (!routeOpen) blockingReasons.push(`No OPEN route from ${originName} to ${destName} (blocked at ${closedRoad || "unknown road"})`);
+    if (available < Number(row.need.properties.quantity)) blockingReasons.push(`Insufficient capacity (need ${row.need.properties.quantity}, have ${available})`);
+    if (String(row.need.properties.kind) === "MEDICAL" && !services.includes("MEDICAL")) blockingReasons.push("Lacks MEDICAL service");
     if (!accessible) blockingReasons.push("Shelter not marked accessible");
-    if (row.fa) blockingReasons.push(`Prior failure: \${row.fa.properties.reason}`);
+    if (row.fa) blockingReasons.push(`Prior failure: ${row.fa.properties.reason}`);
+    if (!row.destAgency) blockingReasons.push("Destination authority unconfirmed");
 
     cands.push({
       shelterId: row.s.properties.id,
@@ -266,7 +298,7 @@ export async function candidatePlans(store: GraphStore, hazardId: string, t: str
       assetId: row.asset ? String(row.asset.properties.id) : null,
       blockingReasons,
       isViable: blockingReasons.length === 0,
-      score: blockingReasons.length === 0 ? 100 - routeMinutes + available : 0,
+      score: (blockingReasons.length === 0 ? 100 : 0) - routeMinutes + available,
     });
   }
   return cands.sort((a: any, b: any) => b.score - a.score);

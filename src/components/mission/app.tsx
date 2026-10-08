@@ -39,8 +39,10 @@ export function MissionApp() {
   };
 
   const currentShelter = data?.ranked[0];
-  const isWestClosed = flags.injectedChange;
-  const isRiversideDropped = flags.injectedChange;
+  
+  const getFact = (facts: any[] | undefined, subjectId: string, predicate: string) => {
+    return facts?.find((f) => f.subjectId === subjectId && f.predicate === predicate)?.objectValue ?? "N/A";
+  };
   
   return (
     <div className="min-h-screen bg-bg text-fg font-sans">
@@ -157,10 +159,30 @@ export function MissionApp() {
                   <div>Now</div>
                 </div>
                 
-                <FactRow label="Riverside Beds" oldVal="42" newVal={isRiversideDropped ? "8" : "42"} changed={isRiversideDropped} />
-                <FactRow label="West Road" oldVal="OPEN" newVal={isWestClosed ? "CLOSED" : "OPEN"} changed={isWestClosed} />
-                <FactRow label="Civic Arena Beds" oldVal="120" newVal="120" changed={false} />
-                <FactRow label="North Road" oldVal="OPEN" newVal="OPEN" changed={false} />
+                <FactRow 
+                  label="Riverside Beds" 
+                  oldVal={getFact(data?.facts1400, "shelter_riverside", "available_cots")} 
+                  newVal={getFact(data?.factsCurrent, "shelter_riverside", "available_cots")} 
+                  changed={getFact(data?.facts1400, "shelter_riverside", "available_cots") !== getFact(data?.factsCurrent, "shelter_riverside", "available_cots")} 
+                />
+                <FactRow 
+                  label="West Road" 
+                  oldVal={getFact(data?.facts1400, "road_west_connector", "status")} 
+                  newVal={getFact(data?.factsCurrent, "road_west_connector", "status")} 
+                  changed={getFact(data?.facts1400, "road_west_connector", "status") !== getFact(data?.factsCurrent, "road_west_connector", "status")} 
+                />
+                <FactRow 
+                  label="Civic Arena Beds" 
+                  oldVal={getFact(data?.facts1400, "shelter_civic", "available_cots")} 
+                  newVal={getFact(data?.factsCurrent, "shelter_civic", "available_cots")} 
+                  changed={getFact(data?.facts1400, "shelter_civic", "available_cots") !== getFact(data?.factsCurrent, "shelter_civic", "available_cots")} 
+                />
+                <FactRow 
+                  label="North Road" 
+                  oldVal={getFact(data?.facts1400, "road_north_civic", "status")} 
+                  newVal={getFact(data?.factsCurrent, "road_north_civic", "status")} 
+                  changed={getFact(data?.facts1400, "road_north_civic", "status") !== getFact(data?.factsCurrent, "road_north_civic", "status")} 
+                />
               </div>
             </section>
 

@@ -2,6 +2,7 @@ import { FalkorDB } from 'falkordb';
 
 export interface GraphStore {
   query(cypher: string, params?: Record<string, any>): Promise<any>;
+  roQuery(cypher: string, params?: Record<string, any>): Promise<any>;
   close(): Promise<void>;
   name: string;
 }
@@ -22,8 +23,30 @@ export class FalkorDBStore implements GraphStore {
     return new FalkorDBStore(client, graphName);
   }
 
+  private injectTiming(res: any, totalTimeMs: number) {
+    let serverTimeMs = 0;
+    if (res.headers) {
+      const match = res.headers.toString().match(/internal execution time: ([\d.]+) milliseconds/);
+      if (match) serverTimeMs = parseFloat(match[1]);
+    }
+    return { ...res, totalTimeMs, serverTimeMs };
+  }
+
   async query(cypher: string, params: Record<string, any> = {}) {
-    return await this.graph.query(cypher, { params });
+    const start = performance.now();
+    const res = await this.graph.query(cypher, { params });
+    const totalTimeMs = performance.now() - start;
+    return this.injectTiming(res, totalTimeMs);
+  }
+
+  async roQuery(cypher: string, params: Record<string, any> = {}) {
+    const start = performance.now();
+    const res = await this.graph.roQuery(cypher, { params });
+    const totalTimeMs = performance.now() - start;
+    if (totalTimeMs > 50) {
+      console.warn(`[FalkorDB roQuery SLOW] total=${totalTimeMs.toFixed(2)}ms | cypher=${cypher.replace(/\n/g, ' ').substring(0, 80)}...`);
+    }
+    return this.injectTiming(res, totalTimeMs);
   }
 
   async close() {
